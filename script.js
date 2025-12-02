@@ -469,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             secAbbr: 'sec',
             validationMissing: 'Please enter text for both languages.',
             validationSlides: (enCount, frCount) => `Slide count mismatch: English has ${enCount} slide(s), French has ${frCount}. Please align slide headings (lines starting with #).`,
+            validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount} paragraph(s), French has ${frCount}. Please align paragraphs by position.`,
             modeSummarySpeech: (start, block, words) => `Speech • Start: ${start} • Block: ${block}s (~${words} words)`,
             modeSummaryPresentation: (start, slideMode) => `Presentation • Start: ${start} • Mode: ${slideMode}`,
             exampleLoadedPresentation: 'Presentation • Example loaded',
@@ -517,6 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
             secAbbr: 's',
             validationMissing: 'Veuillez saisir du texte pour les deux langues.',
             validationSlides: (enCount, frCount) => `Nombre de diapositives différent : ${enCount} en anglais, ${frCount} en français. Alignez les titres commençant par #.`,
+            validationParagraphs: (enCount, frCount) => `Nombre de paragraphes différent : ${enCount} en anglais, ${frCount} en français. Alignez les paragraphes par position.`,
             modeSummarySpeech: (start, block, words) => `Discours • Départ : ${start} • Bloc : ${block}s (~${words} mots)`,
             modeSummaryPresentation: (start, slideMode) => `Présentation • Départ : ${start} • Mode : ${slideMode}`,
             exampleLoadedPresentation: 'Présentation • Exemple chargé',
@@ -696,9 +698,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 showValidation(t.validationSlides(enSlides.length, frSlides.length));
                 return;
             }
+            // Paragraph alignment per slide
+            for (let i = 0; i < enSlides.length; i++) {
+                const enCount = enSlides[i]?.paragraphs?.length || 0;
+                const frCount = frSlides[i]?.paragraphs?.length || 0;
+                if (enCount !== frCount) {
+                    showValidation(t.validationParagraphs(enCount, frCount));
+                    return;
+                }
+            }
             resultObj = merger.mergePresentation(enText, frText, { ...baseOptions, slideMode });
             updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), slideMode));
         } else {
+            const enParas = merger.parseParagraphs(enText);
+            const frParas = merger.parseParagraphs(frText);
+            if (enParas.length !== frParas.length) {
+                showValidation(t.validationParagraphs(enParas.length, frParas.length));
+                return;
+            }
             resultObj = merger.merge(enText, frText, { ...baseOptions, blockTime: blockTimeInput.value });
             updateModeSummary(t.modeSummarySpeech(baseOptions.startLang.toUpperCase(), blockTimeInput.value, blockTimeWords(blockTimeInput.value)));
         }
