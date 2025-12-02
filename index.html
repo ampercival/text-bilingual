@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilingual Text Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-bar">
+                <div>
+                    <h1 id="app-title">Bilingual Text Generator</h1>
+                    <p class="subtitle" id="app-subtitle">Build balanced bilingual speeches and slide notes in English and French</p>
+                </div>
+                <button id="lang-toggle" class="secondary-btn lang-toggle" aria-label="Toggle interface language">FR</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <div class="input-group">
+                    <label for="english-text" id="label-english">English Version</label>
+                    <div class="textarea-wrapper">
+                        <textarea id="english-text" placeholder="Paste the English speech here..."></textarea>
+                        <button type="button" class="expand-btn" aria-label="Expand English text">⛶</button>
+                    </div>
+                    <div class="word-count" id="en-count">0 words</div>
+                </div>
+                <div class="input-group">
+                    <label for="french-text" id="label-french">French Version</label>
+                    <div class="textarea-wrapper">
+                        <textarea id="french-text" placeholder="Paste the French speech here..."></textarea>
+                        <button type="button" class="expand-btn" aria-label="Expand French text">⛶</button>
+                    </div>
+                    <div class="word-count" id="fr-count">0 words</div>
+                </div>
+            </section>
+
+            <section class="format-help">
+                <h3 id="format-title">How to format your input</h3>
+                <ul>
+                    <li id="format-speech"><strong>Speech mode:</strong> Paste plain text for both languages. Keep paragraphs aligned by position (para 1 EN matches para 1 FR).</li>
+                    <li id="format-presentation"><strong>Presentation mode:</strong> Each slide starts with a heading line beginning with <code>#</code> (e.g., <code># Slide 1 - Title</code>). Within a slide, align paragraphs by position in both languages.</li>
+                </ul>
+            </section>
+
+            <section class="examples-section">
+                <div class="examples-actions">
+                    <button id="load-speech-example" class="secondary-btn">Load Speech Example</button>
+                    <button id="load-presentation-example" class="secondary-btn">Load Presentation Example</button>
+                    <button id="reset-btn" class="secondary-btn">Clear / Reset</button>
+                </div>
+            </section>
+
+            <section class="controls-section">
+                <div class="control-card">
+                    <h3 id="settings-title">Settings</h3>
+
+                    <div class="control-row">
+                        <label><span id="label-mode-text">Mode</span> <span class="info-icon" tabindex="0" id="mode-tooltip" data-tooltip="Speech: time-based blocks. Presentation: slide-by-slide output.">i</span></label>
+                        <div class="toggle-switch">
+                            <input type="radio" id="mode-speech" name="mode" value="speech" checked>
+                            <label for="mode-speech" id="label-mode-speech">Speech</label>
+                            <input type="radio" id="mode-presentation" name="mode" value="presentation">
+                            <label for="mode-presentation" id="label-mode-presentation">Presentation</label>
+                        </div>
+                    </div>
+
+                    <div class="control-row">
+                        <label id="label-starting-lang">Starting Language</label>
+                        <div class="toggle-switch">
+                            <input type="radio" id="start-en" name="start-lang" value="en" checked>
+                            <label for="start-en" id="label-start-en">English</label>
+                            <input type="radio" id="start-fr" name="start-lang" value="fr">
+                            <label for="start-fr" id="label-start-fr">French</label>
+                        </div>
+                    </div>
+
+                    <div class="control-row" id="presentation-settings" style="display: none;">
+                        <label><span id="label-slide-mode">Slide Language Mode</span> <span class="info-icon" tabindex="0" id="slide-tooltip" data-tooltip="Single: one language per slide. Mixed: split each slide between both languages.">i</span></label>
+                        <div class="toggle-switch">
+                            <input type="radio" id="slide-single" name="slide-mode" value="single" checked>
+                            <label for="slide-single" id="label-slide-single">Single</label>
+                            <input type="radio" id="slide-mixed" name="slide-mode" value="mixed">
+                            <label for="slide-mixed" id="label-slide-mixed">Mixed</label>
+                        </div>
+                    </div>
+
+                    <div class="control-row" id="time-setting">
+                        <label for="block-time" id="label-block-time">Target Block Time</label>
+                        <div class="slider-container">
+                            <input type="range" id="block-time" min="20" max="120" value="45" step="5">
+                            <span id="block-time-display">45s</span>
+                        </div>
+                        <p class="hint" id="block-time-hint">Optimal time per language block before switching.</p>
+                    </div>
+                </div>
+
+
+                <div class="action-area">
+                    <button id="generate-btn" class="primary-btn">Generate Bilingual Text</button>
+                </div>
+                <div id="validation-message" class="validation-message" aria-live="polite"></div>
+            </section>
+
+            <div id="mode-summary" class="mode-summary" aria-live="polite" style="display: none;"></div>
+
+            <section class="output-section" id="output-section" style="display: none;">
+                <div class="output-header">
+                    <h2 id="output-title">Bilingual Speech</h2>
+                    <div class="output-actions">
+                        <button id="copy-btn" class="secondary-btn">Copy to Clipboard</button>
+                        <button id="download-btn" class="secondary-btn">Download .md</button>
+                    </div>
+                </div>
+                <div id="result-stats" class="result-stats"></div>
+                <div id="output-preview" class="markdown-preview"></div>
+            </section>
+        </main>
+
+        <footer class="page-footer">
+            <p>
+                Content on this site is licensed under
+                <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="license noopener" target="_blank">CC BY-NC 4.0</a>;
+                please credit the source for any non-commercial use. The source code
+                is available on
+                <a href="https://github.com/ampercival/pog_combat_calc.git" rel="noopener" target="_blank">GitHub</a>.
+            </p>
+            <p>
+                © <span id="year"></span> Aaron Percival. All rights reserved.
+            </p>
+            <script>
+                document.getElementById("year").textContent = new Date().getFullYear();
+            </script>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
