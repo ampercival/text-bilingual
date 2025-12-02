@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const translations = {
         en: {
             appTitle: 'Bilingual Text Generator',
-            subtitle: 'Create bilingual speeches and presentations',
+            subtitle: 'Create a balanced bilingual speech or presentation, alternating between the full English and French versions provided',
             stepInputTitle: 'Enter Text',
             stepSettingsTitle: 'Configure & Generate',
             englishLabel: 'English Version',
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         fr: {
             appTitle: 'Générateur de texte bilingue',
-            subtitle: 'Créez des discours et présentations bilingues',
+            subtitle: 'Créez un discours ou une présentation bilingue équilibré, alternant entre les versions complètes anglaise et française fournies',
             stepInputTitle: 'Saisir le texte',
             stepSettingsTitle: 'Configurer et générer',
             englishLabel: 'Version anglaise',
