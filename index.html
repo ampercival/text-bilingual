@@ -15,100 +15,129 @@
     <div class="app-container">
         <header>
             <div class="header-bar">
-                <div>
+                <div class="header-content">
                     <h1 id="app-title">Bilingual Text Generator</h1>
-                    <p class="subtitle" id="app-subtitle">Build balanced bilingual speeches and slide notes in English and French</p>
+                    <p class="subtitle" id="app-subtitle">Create bilingual speeches and presentations</p>
                 </div>
-                <button id="lang-toggle" class="secondary-btn lang-toggle" aria-label="Toggle interface language">FR</button>
+                <button id="lang-toggle" class="secondary-btn lang-toggle"
+                    aria-label="Toggle interface language">FR</button>
             </div>
         </header>
 
         <main>
-            <section class="input-section">
-                <div class="input-group">
-                    <label for="english-text" id="label-english">English Version</label>
-                    <div class="textarea-wrapper">
-                        <textarea id="english-text" placeholder="Paste the English speech here..."></textarea>
-                        <button type="button" class="expand-btn" aria-label="Expand English text">⛶</button>
-                    </div>
-                    <div class="word-count" id="en-count">0 words</div>
+            <!-- Step 1: Input -->
+            <section class="step-section">
+                <div class="step-header">
+                    <span class="step-badge">1</span>
+                    <h2 id="step-input-title">Enter Text</h2>
                 </div>
-                <div class="input-group">
-                    <label for="french-text" id="label-french">French Version</label>
-                    <div class="textarea-wrapper">
-                        <textarea id="french-text" placeholder="Paste the French speech here..."></textarea>
-                        <button type="button" class="expand-btn" aria-label="Expand French text">⛶</button>
+
+                <details class="format-help">
+                    <summary id="format-title">Formatting Tips</summary>
+                    <div class="help-content">
+                        <ul>
+                            <li id="format-general"><strong>General:</strong> Make sure the English and French versions
+                                use the same paragraphs in the same order.</li>
+                            <li id="format-speech"><strong>Speech mode:</strong> Paste your text in both languages. Keep
+                                the paragraph order the same in each version.</li>
+                            <li id="format-presentation"><strong>Presentation mode:</strong> Start each slide with a
+                                line beginning with “#” (for example: <code># Slide 1 - Title</code>). Under each slide,
+                                provide the English and French text. Follow the same paragraph order in both versions.
+                            </li>
+                        </ul>
                     </div>
-                    <div class="word-count" id="fr-count">0 words</div>
+                </details>
+
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="english-text" id="label-english">English Version</label>
+                        <div class="textarea-wrapper">
+                            <textarea id="english-text" placeholder="Paste the English speech here..."></textarea>
+                            <button type="button" class="expand-btn" aria-label="Expand English text">⛶</button>
+                        </div>
+                        <div class="word-count" id="en-count">0 words</div>
+                    </div>
+                    <div class="input-group">
+                        <label for="french-text" id="label-french">French Version</label>
+                        <div class="textarea-wrapper">
+                            <textarea id="french-text" placeholder="Paste the French speech here..."></textarea>
+                            <button type="button" class="expand-btn" aria-label="Expand French text">⛶</button>
+                        </div>
+                        <div class="word-count" id="fr-count">0 words</div>
+                    </div>
                 </div>
-            </section>
 
-            <section class="format-help">
-                <h3 id="format-title">How to format your input</h3>
-                <ul>
-                    <li id="format-general"><strong>General:</strong> Make sure the English and French versions use the same paragraphs in the same order.</li>
-                    <li id="format-speech"><strong>Speech mode:</strong> Paste your text in both languages. Keep the paragraph order the same in each version.</li>
-                    <li id="format-presentation"><strong>Presentation mode:</strong> Start each slide with a line beginning with “#” (for example: <code># Slide 1 - Title</code>). Under each slide, provide the English and French text. Follow the same paragraph order in both versions.</li>
-                </ul>
-            </section>
-
-            <section class="examples-section">
                 <div class="examples-actions">
-                    <button id="load-speech-example" class="secondary-btn">Load Speech Example</button>
-                    <button id="load-presentation-example" class="secondary-btn">Load Presentation Example</button>
-                    <button id="reset-btn" class="secondary-btn">Clear / Reset</button>
+                    <button id="load-speech-example" class="text-btn">Load Speech Example</button>
+                    <button id="load-presentation-example" class="text-btn">Load Presentation Example</button>
+                    <button id="reset-btn" class="text-btn text-btn-danger">Clear / Reset</button>
                 </div>
             </section>
 
-            <section class="controls-section">
-                <div class="control-card">
-                    <h3 id="settings-title">Settings</h3>
-
-                    <div class="control-row">
-                        <label><span id="label-mode-text">Mode</span> <span class="info-icon" tabindex="0" id="mode-tooltip" data-tooltip="Speech: time-based blocks. Presentation: slide-by-slide output.">i</span></label>
-                        <div class="toggle-switch">
-                            <input type="radio" id="mode-speech" name="mode" value="speech" checked>
-                            <label for="mode-speech" id="label-mode-speech">Speech</label>
-                            <input type="radio" id="mode-presentation" name="mode" value="presentation">
-                            <label for="mode-presentation" id="label-mode-presentation">Presentation</label>
-                        </div>
-                    </div>
-
-                    <div class="control-row">
-                        <label id="label-starting-lang">Starting Language</label>
-                        <div class="toggle-switch">
-                            <input type="radio" id="start-en" name="start-lang" value="en" checked>
-                            <label for="start-en" id="label-start-en">English</label>
-                            <input type="radio" id="start-fr" name="start-lang" value="fr">
-                            <label for="start-fr" id="label-start-fr">French</label>
-                        </div>
-                    </div>
-
-                    <div class="control-row" id="presentation-settings" style="display: none;">
-                        <label><span id="label-slide-mode">Slide Language Mode</span> <span class="info-icon" tabindex="0" id="slide-tooltip" data-tooltip="Single: one language per slide. Mixed: split each slide between both languages.">i</span></label>
-                        <div class="toggle-switch">
-                            <input type="radio" id="slide-single" name="slide-mode" value="single" checked>
-                            <label for="slide-single" id="label-slide-single">Single</label>
-                            <input type="radio" id="slide-mixed" name="slide-mode" value="mixed">
-                            <label for="slide-mixed" id="label-slide-mixed">Mixed</label>
-                        </div>
-                    </div>
-
-                    <div class="control-row" id="time-setting">
-                        <label for="block-time" id="label-block-time">Target Block Time</label>
-                        <div class="slider-container">
-                            <input type="range" id="block-time" min="20" max="120" value="45" step="5">
-                            <span id="block-time-display">45s</span>
-                        </div>
-                        <p class="hint" id="block-time-hint">Optimal time per language block before switching.</p>
-                    </div>
+            <!-- Step 2: Settings & Generate -->
+            <section class="step-section">
+                <div class="step-header">
+                    <span class="step-badge">2</span>
+                    <h2 id="step-settings-title">Configure & Generate</h2>
                 </div>
 
+                <div class="controls-section">
+                    <div class="control-card">
+                        <!-- Mode Selection -->
+                        <div class="control-row">
+                            <label><span id="label-mode-text">Mode</span> <span class="info-icon" tabindex="0"
+                                    id="mode-tooltip"
+                                    data-tooltip="Speech: time-based blocks. Presentation: slide-by-slide output.">i</span></label>
+                            <div class="toggle-switch">
+                                <input type="radio" id="mode-speech" name="mode" value="speech" checked>
+                                <label for="mode-speech" id="label-mode-speech">Speech</label>
+                                <input type="radio" id="mode-presentation" name="mode" value="presentation">
+                                <label for="mode-presentation" id="label-mode-presentation">Presentation</label>
+                            </div>
+                        </div>
 
-                <div class="action-area">
-                    <button id="generate-btn" class="primary-btn">Generate Bilingual Text</button>
+                        <!-- Starting Language -->
+                        <div class="control-row">
+                            <label id="label-starting-lang">Starting Language</label>
+                            <div class="toggle-switch">
+                                <input type="radio" id="start-en" name="start-lang" value="en" checked>
+                                <label for="start-en" id="label-start-en">English</label>
+                                <input type="radio" id="start-fr" name="start-lang" value="fr">
+                                <label for="start-fr" id="label-start-fr">French</label>
+                            </div>
+                        </div>
+
+                        <!-- Presentation Specific Settings -->
+                        <div class="control-row" id="presentation-settings" style="display: none;">
+                            <label><span id="label-slide-mode">Slide Language Mode</span> <span class="info-icon"
+                                    tabindex="0" id="slide-tooltip"
+                                    data-tooltip="Single: one language per slide.&#10;Mixed: split each slide between both languages.">i</span></label>
+                            <div class="toggle-switch">
+                                <input type="radio" id="slide-single" name="slide-mode" value="single" checked>
+                                <label for="slide-single" id="label-slide-single">Single</label>
+                                <input type="radio" id="slide-mixed" name="slide-mode" value="mixed">
+                                <label for="slide-mixed" id="label-slide-mixed">Mixed</label>
+                            </div>
+                        </div>
+
+                        <!-- Time Setting -->
+                        <div class="control-row" id="time-setting">
+                            <label for="block-time" id="label-block-time">Language Duration</label>
+                            <div class="slider-wrapper">
+                                <div class="slider-container">
+                                    <input type="range" id="block-time" min="20" max="120" value="45" step="5">
+                                    <span id="block-time-display">45s</span>
+                                </div>
+                                <p class="hint" id="block-time-hint">Time before switching languages.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-area">
+                        <button id="generate-btn" class="primary-btn">Generate Bilingual Text</button>
+                    </div>
+                    <div id="validation-message" class="validation-message" aria-live="polite"></div>
                 </div>
-                <div id="validation-message" class="validation-message" aria-live="polite"></div>
             </section>
 
             <div id="mode-summary" class="mode-summary" aria-live="polite" style="display: none;"></div>
@@ -129,7 +158,8 @@
         <footer class="page-footer">
             <p>
                 Content on this site is licensed under
-                <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="license noopener" target="_blank">CC BY-NC 4.0</a>;
+                <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="license noopener" target="_blank">CC
+                    BY-NC 4.0</a>;
                 please credit the source for any non-commercial use. The source code
                 is available on
                 <a href="https://github.com/ampercival/text-bilingual" rel="noopener" target="_blank">GitHub</a>.
@@ -142,13 +172,13 @@
             </script>
         </footer>
     </div>
-    <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
     <script>
         kofiWidgetOverlay.draw('ampercival', {
             'type': 'floating-chat',
             'floating-chat.donateButton.text': 'Tip Me',
-            'floating-chat.donateButton.background-color': '#ffffff',
-            'floating-chat.donateButton.text-color': '#323842'
+            'floating-chat.donateButton.background-color': '#6366f1',
+            'floating-chat.donateButton.text-color': '#ffffff'
         });
     </script>
     <script src="script.js"></script>

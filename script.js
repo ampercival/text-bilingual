@@ -137,14 +137,14 @@ class BilingualMerger {
             const enScore = enPara.words === 0
                 ? Number.POSITIVE_INFINITY
                 : Math.abs((enWordsUsed + enPara.words) - frWordsUsed)
-                  + (streakLang === 'fr' && !mustSwitch ? (targetStreakCount - streakCount) * 2 : 0)
-                  + (streakLang === 'en' && mustSwitch ? 1e6 : 0);
+                + (streakLang === 'fr' && !mustSwitch ? (targetStreakCount - streakCount) * 2 : 0)
+                + (streakLang === 'en' && mustSwitch ? 1e6 : 0);
 
             const frScore = frPara.words === 0
                 ? Number.POSITIVE_INFINITY
                 : Math.abs(enWordsUsed - (frWordsUsed + frPara.words))
-                  + (streakLang === 'en' && !mustSwitch ? (targetStreakCount - streakCount) * 2 : 0)
-                  + (streakLang === 'fr' && mustSwitch ? 1e6 : 0);
+                + (streakLang === 'en' && !mustSwitch ? (targetStreakCount - streakCount) * 2 : 0)
+                + (streakLang === 'fr' && mustSwitch ? 1e6 : 0);
 
             let chosenLang;
             if (enScore < frScore) {
@@ -412,15 +412,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const translations = {
         en: {
             appTitle: 'Bilingual Text Generator',
-            subtitle: 'Build balanced bilingual speeches and slide notes in English and French',
+            subtitle: 'Create bilingual speeches and presentations',
+            stepInputTitle: 'Enter Text',
+            stepSettingsTitle: 'Configure & Generate',
             englishLabel: 'English Version',
             frenchLabel: 'French Version',
-            englishPlaceholder: 'Paste the English speech here...',
-            frenchPlaceholder: 'Paste the French speech here...',
-            formatTitle: 'How to format your input',
-            formatGeneral: '<strong>General:</strong> Make sure the English and French versions use the same paragraphs in the same order.',
-            formatSpeech: '<strong>Speech mode:</strong> Paste your text in both languages. Keep the paragraph order the same in each version.',
-            formatPresentation: '<strong>Presentation mode:</strong> Start each slide with a line beginning with “#” (for example: # Slide 1 - Title). Under each slide, provide the English and French text. Follow the same paragraph order in both versions.',
+            englishPlaceholder: 'Paste English text here...',
+            frenchPlaceholder: 'Paste French text here...',
+            formatTitle: 'Formatting Tips',
+            formatGeneral: '<strong>General:</strong> Ensure both versions have the same number of paragraphs.',
+            formatSpeech: '<strong>Speech:</strong> Keep paragraph order identical in both languages.',
+            formatPresentation: '<strong>Presentation:</strong> Start slides with "#" (e.g., "# Slide 1"). Match paragraphs under each slide.',
             loadSpeech: 'Load Speech Example',
             loadPresentation: 'Load Presentation Example',
             reset: 'Clear / Reset',
@@ -428,16 +430,16 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: 'Mode',
             speech: 'Speech',
             presentation: 'Presentation',
-            modeTip: 'Speech: time-based blocks. Presentation: slide-by-slide output.',
+            modeTip: 'Speech: Time-based switching.\nPresentation: Slide-by-slide output.',
             startingLanguage: 'Starting Language',
             english: 'English',
             french: 'French',
             slideMode: 'Slide Language Mode',
             single: 'Single',
             mixed: 'Mixed',
-            slideTip: 'Single: one language per slide. Mixed: split each slide between both languages.',
-            blockTime: 'Target Block Time',
-            blockHint: 'Optimal time per language block before switching.',
+            slideTip: 'Single: One language per slide.\nMixed: Both languages on every slide.',
+            blockTime: 'Language Duration',
+            blockHint: 'Time before switching languages.',
             generate: 'Generate Bilingual Text',
             outputTitle: 'Bilingual Speech',
             copy: 'Copy to Clipboard',
@@ -449,46 +451,48 @@ document.addEventListener('DOMContentLoaded', () => {
             minAbbr: 'min',
             secAbbr: 'sec',
             validationMissing: 'Please enter text for both languages.',
-            validationSlides: (enCount, frCount) => `Slide count mismatch: English has ${enCount} slide(s), French has ${frCount}. Please align slide headings (lines starting with #).`,
-            validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount} paragraph(s), French has ${frCount}. Please align paragraphs by position.`,
-            modeSummarySpeech: (start, block, words) => `Speech • Start: ${start} • Block: ${block}s (~${words} words)`,
+            validationSlides: (enCount, frCount) => `Slide count mismatch: English has ${enCount}, French has ${frCount}. Check your "#" headings.`,
+            validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount}, French has ${frCount}. Please align them.`,
+            modeSummarySpeech: (start, block, words) => `Speech • Start: ${start} • Switch every: ${block}s (~${words} words)`,
             modeSummaryPresentation: (start, slideMode) => `Presentation • Start: ${start} • Mode: ${slideMode}`,
-            exampleLoadedPresentation: 'Presentation • Example loaded',
-            exampleLoadedSpeech: 'Speech • Example loaded',
-            exampleLoadError: 'Could not load examples. Please ensure the example files are available.',
+            exampleLoadedPresentation: 'Presentation example loaded.',
+            exampleLoadedSpeech: 'Speech example loaded.',
+            exampleLoadError: 'Could not load examples.',
             copySuccess: 'Copied!',
             expandEn: 'Expand English text',
             expandFr: 'Expand French text'
         },
         fr: {
             appTitle: 'Générateur de texte bilingue',
-            subtitle: 'Créez des discours et des notes de présentation équilibrés en anglais et en français',
+            subtitle: 'Créez des discours et présentations bilingues',
+            stepInputTitle: 'Saisir le texte',
+            stepSettingsTitle: 'Configurer et générer',
             englishLabel: 'Version anglaise',
             frenchLabel: 'Version française',
-            englishPlaceholder: 'Collez le discours en anglais ici...',
-            frenchPlaceholder: 'Collez le discours en français ici...',
-            formatTitle: 'Comment formater votre saisie',
-            formatGeneral: '<strong>Général :</strong> Assurez-vous que les versions anglaise et française utilisent les mêmes paragraphes dans le même ordre.',
-            formatSpeech: '<strong>Mode discours :</strong> Collez votre texte dans les deux langues. Gardez le même ordre de paragraphes dans chaque version.',
-            formatPresentation: '<strong>Mode présentation :</strong> Commencez chaque diapositive par une ligne commençant par « # » (par exemple : # Diapositive 1 - Titre). Sous chaque diapositive, fournissez le texte en anglais et en français. Respectez le même ordre de paragraphes dans les deux versions.',
-            loadSpeech: 'Charger un exemple de discours',
-            loadPresentation: 'Charger un exemple de présentation',
+            englishPlaceholder: 'Collez le texte anglais ici...',
+            frenchPlaceholder: 'Collez le texte français ici...',
+            formatTitle: 'Conseils de formatage',
+            formatGeneral: '<strong>Général :</strong> Assurez-vous que les deux versions ont le même nombre de paragraphes.',
+            formatSpeech: '<strong>Discours :</strong> Gardez l\'ordre des paragraphes identique.',
+            formatPresentation: '<strong>Présentation :</strong> Commencez les diapositives par « # » (ex : « # Diapo 1 »). Alignez les paragraphes.',
+            loadSpeech: 'Exemple de discours',
+            loadPresentation: 'Exemple de présentation',
             reset: 'Effacer / Réinitialiser',
             settings: 'Paramètres',
             mode: 'Mode',
             speech: 'Discours',
             presentation: 'Présentation',
-            modeTip: 'Discours : blocs basés sur le temps. Présentation : sortie diapositive par diapositive.',
+            modeTip: 'Discours : Bascule selon le temps.\nPrésentation : Sortie par diapositive.',
             startingLanguage: 'Langue de départ',
             english: 'Anglais',
             french: 'Français',
-            slideMode: 'Mode langue des diapositives',
+            slideMode: 'Mode diapositives',
             single: 'Unique',
             mixed: 'Mixte',
-            slideTip: 'Unique : une langue par diapositive. Mixte : partage chaque diapositive entre les deux langues.',
-            blockTime: 'Temps cible par bloc',
-            blockHint: 'Temps optimal par bloc de langue avant de basculer.',
-            generate: 'Générer le texte bilingue',
+            slideTip: 'Unique : Une langue par diapo.\nMixte : Les deux langues sur chaque diapo.',
+            blockTime: 'Durée par langue',
+            blockHint: 'Temps avant de changer de langue.',
+            generate: 'Générer le texte',
             outputTitle: 'Texte bilingue',
             copy: 'Copier',
             download: 'Télécharger .md',
@@ -498,14 +502,14 @@ document.addEventListener('DOMContentLoaded', () => {
             words: 'mots',
             minAbbr: 'min',
             secAbbr: 's',
-            validationMissing: 'Veuillez saisir du texte pour les deux langues.',
-            validationSlides: (enCount, frCount) => `Nombre de diapositives différent : ${enCount} en anglais, ${frCount} en français. Alignez les titres commençant par #.`,
-            validationParagraphs: (enCount, frCount) => `Nombre de paragraphes différent : ${enCount} en anglais, ${frCount} en français. Alignez les paragraphes par position.`,
-            modeSummarySpeech: (start, block, words) => `Discours • Départ : ${start} • Bloc : ${block}s (~${words} mots)`,
+            validationMissing: 'Veuillez saisir du texte dans les deux langues.',
+            validationSlides: (enCount, frCount) => `Nombre de diapositives différent : ${enCount} (EN) vs ${frCount} (FR). Vérifiez les titres « # ».`,
+            validationParagraphs: (enCount, frCount) => `Nombre de paragraphes différent : ${enCount} (EN) vs ${frCount} (FR). Veuillez les aligner.`,
+            modeSummarySpeech: (start, block, words) => `Discours • Départ : ${start} • Change tous les : ${block}s (~${words} mots)`,
             modeSummaryPresentation: (start, slideMode) => `Présentation • Départ : ${start} • Mode : ${slideMode}`,
-            exampleLoadedPresentation: 'Présentation • Exemple chargé',
-            exampleLoadedSpeech: 'Discours • Exemple chargé',
-            exampleLoadError: 'Impossible de charger les exemples. Vérifiez les fichiers.',
+            exampleLoadedPresentation: 'Exemple de présentation chargé.',
+            exampleLoadedSpeech: 'Exemple de discours chargé.',
+            exampleLoadError: 'Impossible de charger les exemples.',
             copySuccess: 'Copié !',
             expandEn: 'Agrandir le texte anglais',
             expandFr: 'Agrandir le texte français'
@@ -524,6 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         setText('app-title', t.appTitle);
         setText('app-subtitle', t.subtitle);
+        setText('step-input-title', t.stepInputTitle);
+        setText('step-settings-title', t.stepSettingsTitle);
         setText('label-english', t.englishLabel);
         setText('label-french', t.frenchLabel);
         setText('format-title', t.formatTitle);
@@ -533,6 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         setHTML('format-speech', t.formatSpeech);
         setHTML('format-presentation', t.formatPresentation);
+        setHTML('format-general', t.formatGeneral);
         setText('load-speech-example', t.loadSpeech);
         setText('load-presentation-example', t.loadPresentation);
         setText('reset-btn', t.reset);
