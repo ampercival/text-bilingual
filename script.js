@@ -228,6 +228,7 @@ class BilingualMerger {
         let enWordsUsed = 0;
         let frWordsUsed = 0;
         const slidesOut = [];
+        let lastEndLang = options.startLang;
 
         for (let i = 0; i < totalSlides; i++) {
             const enSlide = enSlides[i] || { title: `# Slide ${i + 1}`, body: '', paragraphs: [], words: 0 };
@@ -237,8 +238,7 @@ class BilingualMerger {
 
             const isLastSlide = i === totalSlides - 1;
             // Start with the previous slide's ending language; first slide uses user preference.
-            const prevEndLang = slidesOut.length ? slidesOut[slidesOut.length - 1].endLang : null;
-            const startLang = i === 0 ? options.startLang : (prevEndLang || options.startLang);
+            const startLang = i === 0 ? options.startLang : lastEndLang;
             const otherLang = other(startLang);
             const startSlide = startLang === 'en' ? enSlide : frSlide;
             const otherSlide = startLang === 'en' ? frSlide : enSlide;
@@ -260,6 +260,7 @@ class BilingualMerger {
                 }
 
                 slidesOut.push({ text: `${title}\n${chosenSlide.body}`.trim(), endLang: chosenLang });
+                lastEndLang = chosenLang;
                 if (chosenLang === 'en') enWordsUsed += chosenSlide.words; else frWordsUsed += chosenSlide.words;
             } else {
                 // Mixed: first half startLang, second half otherLang; next slide starts with previous end language.
@@ -318,7 +319,9 @@ class BilingualMerger {
 
                 const parts = [title];
                 if (paraOrder.length > 0) parts.push(paraOrder.map(p => p.text).join('\n\n'));
-                slidesOut.push({ text: parts.join('\n\n').trim(), endLang: paraOrder.length ? paraOrder[paraOrder.length - 1].lang : startLang });
+                const endLang = paraOrder.length ? paraOrder[paraOrder.length - 1].lang : startLang;
+                slidesOut.push({ text: parts.join('\n\n').trim(), endLang });
+                lastEndLang = endLang;
                 enWordsUsed += slideEn;
                 frWordsUsed += slideFr;
             }
