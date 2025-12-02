@@ -15,9 +15,13 @@ class BilingualMerger {
         return (wordCount / this.wpm) * 60; // seconds
     }
 
-    // Split text into paragraphs (by double newlines)
+    // Split text into paragraphs (normalize line endings; break on blank lines)
     parseParagraphs(text) {
-        return text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+        const normalized = text.replace(/\r\n?/g, '\n');
+        return normalized
+            .split(/\n\s*\n+/)
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
     }
 
     // Split slide notes by headings starting with "#"
@@ -414,8 +418,9 @@ document.addEventListener('DOMContentLoaded', () => {
             englishPlaceholder: 'Paste the English speech here...',
             frenchPlaceholder: 'Paste the French speech here...',
             formatTitle: 'How to format your input',
-            formatSpeech: 'Speech mode: Paste plain text for both languages. Keep paragraphs aligned by position (para 1 EN matches para 1 FR).',
-            formatPresentation: 'Presentation mode: Each slide starts with a heading line beginning with # (e.g., # Slide 1 - Title). Within a slide, align paragraphs by position in both languages.',
+            formatGeneral: 'General: Keep English and French paragraphs aligned by position (EN para 1 ↔ FR para 1, etc.).',
+            formatSpeech: 'Speech mode: Paste plain text in both languages; alignment by paragraph is enough.',
+            formatPresentation: 'Presentation mode: Each slide starts with a heading line beginning with # (e.g., # Slide 1 - Title). Within each slide, align paragraphs by position in both languages.',
             loadSpeech: 'Load Speech Example',
             loadPresentation: 'Load Presentation Example',
             reset: 'Clear / Reset',
@@ -463,8 +468,9 @@ document.addEventListener('DOMContentLoaded', () => {
             englishPlaceholder: 'Collez le discours en anglais ici...',
             frenchPlaceholder: 'Collez le discours en français ici...',
             formatTitle: 'Comment formater votre saisie',
-            formatSpeech: 'Mode discours : collez du texte brut pour les deux langues. Alignez les paragraphes par position (para 1 EN correspond au para 1 FR).',
-            formatPresentation: 'Mode présentation : chaque diapositive commence par une ligne de titre avec # (ex. # Diapositive 1 - Titre). À l’intérieur d’une diapositive, alignez les paragraphes par position dans les deux langues.',
+            formatGeneral: 'Général : alignez les paragraphes anglais et français par position (para 1 EN ↔ para 1 FR, etc.).',
+            formatSpeech: 'Mode discours : collez du texte brut dans les deux langues; l’alignement par paragraphe suffit.',
+            formatPresentation: 'Mode présentation : chaque diapositive commence par un titre avec # (ex. # Diapositive 1 - Titre). À l’intérieur de chaque diapositive, alignez les paragraphes par position dans les deux langues.',
             loadSpeech: 'Charger un exemple de discours',
             loadPresentation: 'Charger un exemple de présentation',
             reset: 'Effacer / Réinitialiser',
