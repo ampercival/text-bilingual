@@ -237,8 +237,9 @@ class BilingualMerger {
             if (totalParas === 0) continue;
 
             const isLastSlide = i === totalSlides - 1;
-            // Start with the previous slide's ending language; first slide uses user preference.
-            const startLang = i === 0 ? options.startLang : lastEndLang;
+            const startLang = options.slideMode === 'single'
+                ? (i % 2 === 0 ? options.startLang : other(options.startLang))
+                : (i === 0 ? options.startLang : lastEndLang);
             const otherLang = other(startLang);
             const startSlide = startLang === 'en' ? enSlide : frSlide;
             const otherSlide = startLang === 'en' ? frSlide : enSlide;
