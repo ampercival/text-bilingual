@@ -236,8 +236,9 @@ class BilingualMerger {
             if (totalParas === 0) continue;
 
             const isLastSlide = i === totalSlides - 1;
-            // Alternate starting language based on how the previous slide ended.
-            const startLang = i === 0 ? options.startLang : other(slidesOut[slidesOut.length - 1]?.endLang || options.startLang);
+            // Start with the previous slide's ending language; first slide uses user preference.
+            const prevEndLang = slidesOut.length ? slidesOut[slidesOut.length - 1].endLang : null;
+            const startLang = i === 0 ? options.startLang : (prevEndLang || options.startLang);
             const otherLang = other(startLang);
             const startSlide = startLang === 'en' ? enSlide : frSlide;
             const otherSlide = startLang === 'en' ? frSlide : enSlide;
@@ -258,7 +259,7 @@ class BilingualMerger {
                     }
                 }
 
-                slidesOut.push(`${title}\n${chosenSlide.body}`.trim());
+                slidesOut.push({ text: `${title}\n${chosenSlide.body}`.trim(), endLang: chosenLang });
                 if (chosenLang === 'en') enWordsUsed += chosenSlide.words; else frWordsUsed += chosenSlide.words;
             } else {
                 // Mixed: first half startLang, second half otherLang; next slide starts with previous end language.
@@ -324,7 +325,7 @@ class BilingualMerger {
         }
 
         return {
-            text: slidesOut.map(s => (typeof s === 'string' ? s : s.text)).join('\n\n***\n\n'),
+            text: slidesOut.map(s => s.text).join('\n\n***\n\n'),
             enWords: enWordsUsed,
             frWords: frWordsUsed
         };
