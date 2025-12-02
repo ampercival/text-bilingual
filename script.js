@@ -236,18 +236,11 @@ class BilingualMerger {
             if (totalParas === 0) continue;
 
             const isLastSlide = i === totalSlides - 1;
-            // Alternate starting language by slide, respecting chosen startLang.
-            let plannedStart = (i % 2 === 0) ? options.startLang : other(options.startLang);
-
-            // Balance adjustment: if one language is ahead by ~40+ words, start this slide with the trailing language if possible.
-            const wordGap = enWordsUsed - frWordsUsed;
-            if (wordGap > 40 && plannedStart === 'en' && frSlide.words > 0) plannedStart = 'fr';
-            if (wordGap < -40 && plannedStart === 'fr' && enSlide.words > 0) plannedStart = 'en';
-
-            const startSlide = plannedStart === 'en' ? enSlide : frSlide;
-            const otherSlide = plannedStart === 'en' ? frSlide : enSlide;
-            const startLang = plannedStart;
-            const otherLang = other(plannedStart);
+            // Alternate starting language based on how the previous slide ended.
+            const startLang = i === 0 ? options.startLang : other(slidesOut[slidesOut.length - 1]?.endLang || options.startLang);
+            const otherLang = other(startLang);
+            const startSlide = startLang === 'en' ? enSlide : frSlide;
+            const otherSlide = startLang === 'en' ? frSlide : enSlide;
             const title = startSlide.title || otherSlide.title || `# Slide ${i + 1}`;
 
             if (options.slideMode === 'single') {
@@ -268,92 +261,70 @@ class BilingualMerger {
                 slidesOut.push(`${title}\n${chosenSlide.body}`.trim());
                 if (chosenLang === 'en') enWordsUsed += chosenSlide.words; else frWordsUsed += chosenSlide.words;
             } else {
-                // Mixed: choose a boundary (by paragraph index) to switch languages without duplicating content.
+                // Mixed: first half startLang, second half otherLang; next slide starts with previous end language.
                 const getPara = (lang, idx) => {
                     const arr = lang === 'en' ? enSlide.paragraphs : frSlide.paragraphs;
                     const text = arr[idx] || '';
                     return { text, words: this.countWords(text) };
                 };
 
-                let bestK = 0;
-                let bestScore = Number.POSITIVE_INFINITY;
-                let bestSlideCounts = { en: 0, fr: 0 };
+                const half = Math.ceil(totalParas / 2);
+                const assignments = Array.from({ length: totalParas }, (_, idx) => idx < half ? startLang : otherLang);
 
-                for (let k = 0; k <= totalParas; k++) {
-                    let slideEn = 0;
-                    let slideFr = 0;
-                    for (let idx = 0; idx < totalParas; idx++) {
-                        const useLang = idx < k ? startLang : otherLang;
-                        const primary = getPara(useLang, idx);
-                        const fallback = getPara(useLang === 'en' ? 'fr' : 'en', idx);
-                        const chosen = primary.text ? primary : fallback;
-                        if (useLang === 'en') slideEn += chosen.words; else slideFr += chosen.words;
-                    }
-                    const diffAfter = Math.abs((enWordsUsed + slideEn) - (frWordsUsed + slideFr));
-                    const midpointPenalty = Math.abs(k - totalParas / 2);
-                    const score = diffAfter * 10 + midpointPenalty;
-                    if (score < bestScore) {
-                        bestScore = score;
-                        bestK = k;
-                        bestSlideCounts = { en: slideEn, fr: slideFr };
+                let slideEn = 0;
+                let slideFr = 0;
+                const paraOrder = [];
+                for (let idx = 0; idx < totalParas; idx++) {
+                    const useLang = assignments[idx];
+                    const primary = getPara(useLang, idx);
+                    const fallback = getPara(useLang === 'en' ? 'fr' : 'en', idx);
+                    const chosen = primary.text ? primary : fallback;
+                    if (!chosen.text) continue;
+                    paraOrder.push({ text: chosen.text, lang: useLang, words: chosen.words });
+                    if (useLang === 'en') slideEn += chosen.words; else slideFr += chosen.words;
+                }
+
+                // Only on last slide, consider swapping the last paragraph to balance totals.
+                if (isLastSlide && paraOrder.length > 0) {
+                    const lastIdx = paraOrder.length - 1;
+                    const lastLang = paraOrder[lastIdx].lang;
+                    const lastWords = paraOrder[lastIdx].words;
+                    const lastParaText = paraOrder[lastIdx].text;
+                    const swapLang = lastLang === 'en' ? 'fr' : 'en';
+                    const alt = getPara(swapLang, totalParas - 1);
+                    if (alt.text) {
+                        let altEn = slideEn;
+                        let altFr = slideFr;
+                        if (lastLang === 'en') {
+                            altEn = slideEn - lastWords;
+                            altFr = slideFr + alt.words;
+                        } else {
+                            altFr = slideFr - lastWords;
+                            altEn = slideEn + alt.words;
+                        }
+                        const baseGap = Math.abs((enWordsUsed + slideEn) - (frWordsUsed + slideFr));
+                        const altGap = Math.abs((enWordsUsed + altEn) - (frWordsUsed + altFr));
+                        if (altGap < baseGap) {
+                            paraOrder[lastIdx] = { text: alt.text, lang: swapLang, words: alt.words };
+                            slideEn = altEn;
+                            slideFr = altFr;
+                        } else {
+                            // keep original
+                            paraOrder[lastIdx] = { text: lastParaText, lang: lastLang, words: lastWords };
+                        }
                     }
                 }
 
-                const buildVariant = (assignLang) => {
-                    let slideEn = 0;
-                    let slideFr = 0;
-                    const used = Array(totalParas).fill(false);
-                    const paraOrder = [];
-                    for (let idx = 0; idx < totalParas; idx++) {
-                        const useLang = assignLang[idx];
-                        const primary = getPara(useLang, idx);
-                        const fallback = getPara(useLang === 'en' ? 'fr' : 'en', idx);
-                        const chosen = primary.text ? primary : fallback;
-                        if (!chosen.text) continue;
-                        paraOrder.push(chosen.text);
-                        if (useLang === 'en') slideEn += chosen.words; else slideFr += chosen.words;
-                        used[idx] = true;
-                    }
-                    for (let idx = 0; idx < totalParas; idx++) {
-                        if (used[idx]) continue;
-                        const enPara = getPara('en', idx);
-                        const frPara = getPara('fr', idx);
-                        const fallbackText = enPara.text || frPara.text;
-                        if (!fallbackText) continue;
-                        paraOrder.push(fallbackText);
-                        const w = this.countWords(fallbackText);
-                        if (slideEn <= slideFr) slideEn += w; else slideFr += w;
-                    }
-                    const parts = [title];
-                    if (paraOrder.length > 0) parts.push(paraOrder.join('\n\n'));
-                    return {
-                        text: parts.join('\n\n').trim(),
-                        enAdd: slideEn,
-                        frAdd: slideFr
-                    };
-                };
-
-                const assignBase = Array.from({ length: totalParas }, (_, idx) => idx < bestK ? startLang : otherLang);
-                const baseVariant = buildVariant(assignBase);
-
-                let chosenVariant = baseVariant;
-                if (isLastSlide && totalParas > 0) {
-                    const assignAlt = assignBase.slice();
-                    assignAlt[totalParas - 1] = assignAlt[totalParas - 1] === 'en' ? 'fr' : 'en';
-                    const altVariant = buildVariant(assignAlt);
-                    const baseGap = Math.abs((enWordsUsed + baseVariant.enAdd) - (frWordsUsed + baseVariant.frAdd));
-                    const altGap = Math.abs((enWordsUsed + altVariant.enAdd) - (frWordsUsed + altVariant.frAdd));
-                    if (altGap < baseGap) chosenVariant = altVariant;
-                }
-
-                slidesOut.push(chosenVariant.text);
-                enWordsUsed += chosenVariant.enAdd;
-                frWordsUsed += chosenVariant.frAdd;
+                const parts = [title];
+                if (paraOrder.length > 0) parts.push(paraOrder.map(p => p.text).join('\n\n'));
+                slidesOut.push({ text: parts.join('\n\n').trim(), endLang: paraOrder.length ? paraOrder[paraOrder.length - 1].lang : startLang });
+                enWordsUsed += slideEn;
+                frWordsUsed += slideFr;
             }
         }
 
         return {
-            text: slidesOut.join('\n\n***\n\n'),
+            text: slidesOut.map(s => (typeof s === 'string' ? s : s.text)).join('\n\n***\n\n'),
             enWords: enWordsUsed,
             frWords: frWordsUsed
         };
