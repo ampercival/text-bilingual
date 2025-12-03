@@ -647,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('load-speech-example', t.loadSpeech);
         setText('load-presentation-example', t.loadPresentation);
         setText('reset-btn', t.reset);
-        setText('format-text-btn', t.formatButton);
+        setText('format-text-label', t.formatButton);
         setText('settings-title', t.settings);
         setText('label-mode-text', t.mode);
         setText('label-mode-speech', t.speech);
