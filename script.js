@@ -286,7 +286,7 @@ class BilingualMerger {
                 enParas: enSlide.paragraphs.map(text => ({ text, words: this.countWords(text) })),
                 frParas: frSlide.paragraphs.map(text => ({ text, words: this.countWords(text) })),
                 totalParas,
-                defaultCut: Math.ceil(totalParas / 2),
+                defaultCut: totalParas <= 1 ? 1 : Math.ceil(totalParas / 2),
                 fallbackTitle: `# Slide ${i + 1}`
             });
         }
@@ -301,7 +301,9 @@ class BilingualMerger {
                 const startLang = slidesOut.length === 0 ? options.startLang : lastEndLang;
                 const otherLang = other(startLang);
                 const rawCut = Array.isArray(cutsArr) ? cutsArr[meta.index] : undefined;
-                const cut = Math.max(0, Math.min(meta.totalParas, rawCut ?? meta.defaultCut));
+                const cut = meta.totalParas <= 1
+                    ? 1
+                    : Math.max(1, Math.min(meta.totalParas - 1, rawCut ?? meta.defaultCut));
 
                 const paraOrder = [];
                 let slideEn = 0;
@@ -316,6 +318,19 @@ class BilingualMerger {
                     const chosenLang = primary.text ? plannedLang : other(plannedLang);
                     paraOrder.push({ text: chosen.text, lang: chosenLang, words: chosen.words });
                     if (chosenLang === 'en') slideEn += chosen.words; else slideFr += chosen.words;
+                }
+
+                // Enforce bilingual content per slide by appending the missing language when possible.
+                const langsUsed = new Set(paraOrder.map(p => p.lang));
+                if (paraOrder.length > 0 && langsUsed.size === 1) {
+                    const missingLang = langsUsed.has('en') ? 'fr' : 'en';
+                    const missingPara = missingLang === 'en'
+                        ? (meta.enParas[meta.totalParas - 1] || { text: '', words: 0 })
+                        : (meta.frParas[meta.totalParas - 1] || { text: '', words: 0 });
+                    if (missingPara.text) {
+                        paraOrder.push({ text: missingPara.text, lang: missingLang, words: missingPara.words });
+                        if (missingLang === 'en') slideEn += missingPara.words; else slideFr += missingPara.words;
+                    }
                 }
 
                 const endLang = paraOrder.length ? paraOrder[paraOrder.length - 1].lang : startLang;
@@ -344,10 +359,11 @@ class BilingualMerger {
         for (let iter = 0; iter < maxIterations; iter++) {
             let candidate = null;
             for (const meta of slidesMeta) {
+                if (meta.totalParas <= 1) continue;
                 const currentCut = cuts[meta.index];
                 const optionsCuts = [];
-                if (currentCut - 1 >= 0) optionsCuts.push(currentCut - 1);
-                if (currentCut + 1 <= meta.totalParas) optionsCuts.push(currentCut + 1);
+                if (currentCut - 1 >= 1) optionsCuts.push(currentCut - 1);
+                if (currentCut + 1 <= meta.totalParas - 1) optionsCuts.push(currentCut + 1);
 
                 for (const newCut of optionsCuts) {
                     if (newCut === currentCut) continue;
@@ -801,10 +817,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const t = translations[currentLang];
         const enWords = merger.countWords(enInput.value);
         const frWords = merger.countWords(frInput.value);
-        const enDurMin = Math.round(merger.estimateDuration(enWords) / 60);
-        const frDurMin = Math.round(merger.estimateDuration(frWords) / 60);
-        enCountDisplay.textContent = `${enWords} ${t.words} (~${enDurMin} ${t.minAbbr})`;
-        frCountDisplay.textContent = `${frWords} ${t.words} (~${frDurMin} ${t.minAbbr})`;
+        const enDurSec = merger.estimateDuration(enWords);
+        const frDurSec = merger.estimateDuration(frWords);
+        enCountDisplay.textContent = `${enWords} ${t.words} (~${formatTime(enDurSec, t)})`;
+        frCountDisplay.textContent = `${frWords} ${t.words} (~${formatTime(frDurSec, t)})`;
         updateOptimalFromInputs();
     };
 
