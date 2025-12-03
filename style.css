@@ -147,6 +147,19 @@ h1 {
     margin-bottom: 1.5rem;
 }
 
+.format-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#format-text-btn {
+    margin-left: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .input-group {
     display: flex;
     flex-direction: column;
@@ -262,6 +275,7 @@ textarea::placeholder {
     gap: 1rem;
     margin-bottom: 2rem;
     flex-wrap: wrap;
+    margin-top: 0.5rem;
 }
 
 .text-btn {
@@ -401,7 +415,7 @@ textarea::placeholder {
     justify-content: center;
     width: 20px;
     height: 20px;
-    margin-left: 0.5rem;
+    flex-shrink: 0;
     border-radius: 50%;
     background-color: var(--bg-color);
     color: var(--text-muted);
@@ -409,6 +423,12 @@ textarea::placeholder {
     font-weight: 700;
     cursor: help;
     transition: all 0.2s;
+}
+
+#format-text-btn .info-icon {
+    background-color: var(--bg-color);
+    border: 1px solid var(--text-light);
+    margin-left: 0;
 }
 
 .info-icon:hover,
@@ -790,6 +810,30 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border-radius: var(--radius-sm);
     font-weight: 500;
     font-size: 0.95rem;
+}
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background-color: #1e293b;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    box-shadow: var(--shadow-lg);
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.toast-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
 }
 
 /* Footer */

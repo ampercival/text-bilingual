@@ -360,6 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const presentationSettings = document.getElementById('presentation-settings');
     const validationMessage = document.getElementById('validation-message');
     const modeSummary = document.getElementById('mode-summary');
+    const formatTextBtn = document.getElementById('format-text-btn');
+    const formatTooltipIcon = document.getElementById('format-tooltip');
     const durationRadios = document.querySelectorAll('input[name="duration-mode"]');
     const optimalControls = document.getElementById('optimal-controls');
     const manualControls = document.getElementById('manual-controls');
@@ -469,6 +471,8 @@ document.addEventListener('DOMContentLoaded', () => {
             statsFrench: 'French',
             statsTotal: 'Total',
             words: 'words',
+            formatButton: 'Format Text',
+            formatTooltip: '(Optional) Insert blank lines between paragraphs and after slide titles (#...).',
             minAbbr: 'min',
             secAbbr: 'sec',
             validationMissing: 'Please enter text for both languages.',
@@ -481,7 +485,13 @@ document.addEventListener('DOMContentLoaded', () => {
             exampleLoadError: 'Could not load examples.',
             copySuccess: 'Copied!',
             expandEn: 'Expand English text',
-            expandFr: 'Expand French text'
+            exampleLoadedPresentation: 'Presentation example loaded.',
+            exampleLoadedSpeech: 'Speech example loaded.',
+            exampleLoadError: 'Could not load examples.',
+            copySuccess: 'Copied!',
+            expandEn: 'Expand English text',
+            expandFr: 'Expand French text',
+            textFormatted: 'Text formatted!'
         },
         fr: {
             appTitle: 'G\u00e9n\u00e9rateur de texte bilingue',
@@ -529,6 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
             statsFrench: 'Fran\u00e7ais',
             statsTotal: 'Total',
             words: 'mots',
+            formatButton: 'Formater le texte',
+            formatTooltip: '(Facultatif) Ajoute des lignes vides entre les paragraphes et apr\u00e8s les titres de diapo (#...).',
             minAbbr: 'min',
             secAbbr: 's',
             validationMissing: 'Veuillez saisir du texte dans les deux langues.',
@@ -541,7 +553,13 @@ document.addEventListener('DOMContentLoaded', () => {
             exampleLoadError: 'Impossible de charger les exemples.',
             copySuccess: 'Copi\u00e9 !',
             expandEn: 'Agrandir le texte anglais',
-            expandFr: 'Agrandir le texte fran\u00e7ais'
+            exampleLoadedPresentation: 'Exemple de pr\u00e9sentation charg\u00e9.',
+            exampleLoadedSpeech: 'Exemple de discours charg\u00e9.',
+            exampleLoadError: 'Impossible de charger les exemples.',
+            copySuccess: 'Copi\u00e9 !',
+            expandEn: 'Agrandir le texte anglais',
+            expandFr: 'Agrandir le texte fran\u00e7ais',
+            textFormatted: 'Texte format\u00e9 !'
         }
     };
 
@@ -629,6 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('load-speech-example', t.loadSpeech);
         setText('load-presentation-example', t.loadPresentation);
         setText('reset-btn', t.reset);
+        setText('format-text-btn', t.formatButton);
         setText('settings-title', t.settings);
         setText('label-mode-text', t.mode);
         setText('label-mode-speech', t.speech);
@@ -662,6 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (expandButtons[1]) expandButtons[1].setAttribute('aria-label', t.expandFr);
         }
         if (langToggleBtn) langToggleBtn.textContent = currentLang === 'en' ? 'FR' : 'EN';
+        if (formatTooltipIcon) formatTooltipIcon.setAttribute('data-tooltip', t.formatTooltip);
         updateBlockTimeDisplay(blockTimeInput.value, t);
         renderOptimalResult();
         updateInputStats();
@@ -711,6 +731,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const showToast = (message) => {
+        const existing = document.querySelector('.toast-notification');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Force reflow
+        toast.offsetHeight;
+        toast.classList.add('show');
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
     const updateOptimalFromInputs = () => {
         const selected = document.querySelector('input[name="duration-mode"]:checked');
         if (selected && selected.value === 'optimal') {
@@ -729,6 +768,18 @@ document.addEventListener('DOMContentLoaded', () => {
         enCountDisplay.textContent = `${enWords} ${t.words} (~${enDurMin} ${t.minAbbr})`;
         frCountDisplay.textContent = `${frWords} ${t.words} (~${frDurMin} ${t.minAbbr})`;
         updateOptimalFromInputs();
+    };
+
+    const formatTextContent = (text) => {
+        if (!text) return '';
+        let normalized = text.replace(/\r\n?/g, '\n').trimEnd();
+        // Ensure a blank line after slide titles
+        normalized = normalized.replace(/(^\s*#.+)(\n(?!\n))/gm, '$1\n\n');
+        // Ensure a blank line between non-empty lines (paragraph separation)
+        normalized = normalized.replace(/([^\n\s].*?)(\n)(?=[^\n\s])/g, '$1\n\n');
+        // Collapse overly long gaps
+        normalized = normalized.replace(/\n{3,}/g, '\n\n');
+        return normalized.trimEnd();
     };
 
     enInput.addEventListener('input', updateInputStats);
@@ -949,5 +1000,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (resetBtn) {
         resetBtn.addEventListener('click', () => resetForm());
+    }
+    if (formatTextBtn) {
+        formatTextBtn.addEventListener('click', () => {
+            enInput.value = formatTextContent(enInput.value);
+            frInput.value = formatTextContent(frInput.value);
+            updateInputStats();
+            showValidation('');
+            showToast(translations[currentLang].textFormatted || 'Text formatted!');
+        });
     }
 });
