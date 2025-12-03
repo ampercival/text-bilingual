@@ -123,11 +123,34 @@
 
                         <!-- Time Setting -->
                         <div class="control-row" id="time-setting">
-                            <label for="block-time" id="label-block-time">Language Duration</label>
+                            <div class="control-label-with-info">
+                                <label id="label-block-time">Language Duration</label>
+                                <span class="info-icon" tabindex="0" id="duration-tooltip"
+                                    data-tooltip="How long you stay in one language before switching. Use Optimal to auto-balance or Manual to set it yourself.">i</span>
+                            </div>
+                            <div class="toggle-switch sm">
+                                <input type="radio" id="duration-optimal" name="duration-mode" value="optimal" checked>
+                                <label for="duration-optimal" id="label-duration-optimal">Optimal</label>
+                                <span class="info-icon" tabindex="0" id="optimal-bands-tooltip"
+                                    data-tooltip="Suggested blocks (by total speech time):&#10;- 0-5 min | Block: 15-30s&#10;- 5-10 min | Block: 30-60s&#10;- 10-20 min | Block: 45-90s&#10;- 20+ min | Block: 60-120s">i</span>
+                                <input type="radio" id="duration-manual" name="duration-mode" value="manual">
+                                <label for="duration-manual" id="label-duration-manual">Manual</label>
+                            </div>
+                        </div>
+
+                        <div id="optimal-controls" class="duration-detail">
+                            <p id="optimal-result" class="optimal-result"></p>
+                        </div>
+
+                        <div id="manual-controls" class="duration-detail" style="display: none;">
                             <div class="slider-wrapper">
                                 <div class="slider-container">
                                     <input type="range" id="block-time" min="20" max="120" value="45" step="5">
                                     <span id="block-time-display">45s</span>
+                                </div>
+                                <div class="slider-labels">
+                                    <span>20s</span>
+                                    <span>120s</span>
                                 </div>
                                 <p class="hint" id="block-time-hint">Time before switching languages.</p>
                             </div>

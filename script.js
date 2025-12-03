@@ -360,6 +360,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const presentationSettings = document.getElementById('presentation-settings');
     const validationMessage = document.getElementById('validation-message');
     const modeSummary = document.getElementById('mode-summary');
+    const durationRadios = document.querySelectorAll('input[name="duration-mode"]');
+    const optimalControls = document.getElementById('optimal-controls');
+    const manualControls = document.getElementById('manual-controls');
+    const optimalResultEl = document.getElementById('optimal-result');
+    const durationTooltip = document.getElementById('duration-tooltip');
+    const optimalBandsTooltip = document.getElementById('optimal-bands-tooltip');
     const expandButtons = document.querySelectorAll('.expand-btn');
     const loadSpeechExampleBtn = document.getElementById('load-speech-example');
     const loadPresentationExampleBtn = document.getElementById('load-presentation-example');
@@ -409,6 +415,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const syncDurationModeVisibility = () => {
+        const selected = document.querySelector('input[name="duration-mode"]:checked');
+        const mode = selected ? selected.value : 'optimal';
+        if (optimalControls) optimalControls.style.display = mode === 'optimal' ? 'block' : 'none';
+        if (manualControls) manualControls.style.display = mode === 'manual' ? 'block' : 'none';
+    };
+
     const translations = {
         en: {
             appTitle: 'Bilingual Text Generator',
@@ -430,16 +443,24 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: 'Mode',
             speech: 'Speech',
             presentation: 'Presentation',
-            modeTip: 'Speech: Time-based switching.\nPresentation: Slide-by-slide output.',
+            modeTip: 'Speech: time-based blocks.\nPresentation: slide-by-slide output.',
             startingLanguage: 'Starting Language',
             english: 'English',
             french: 'French',
             slideMode: 'Slide Language Mode',
             single: 'Single',
             mixed: 'Mixed',
-            slideTip: 'Single: One language per slide.\nMixed: Both languages on every slide.',
+            slideTip: 'Single: one language per slide.\nMixed: both languages on every slide.',
             blockTime: 'Language Duration',
             blockHint: 'Time before switching languages.',
+            durationOptimal: 'Optimal',
+            durationManual: 'Manual',
+            durationTooltip: 'Length of time you speak in one language before switching. Choose Optimal to auto-balance or Manual to set it yourself.',
+            optimalResult: (avgWords, minTime, maxTime, bestTime) => `Based on average length of ${avgWords} words:\n- Recommended: ${minTime}-${maxTime}s\n- Optimal found: ${bestTime}s`,
+            optimalResultPlaceholder: '',
+            optimalLabel: 'Optimal',
+            bestLabel: 'Best',
+            optimalBandsTooltip: `Suggested blocks:\nSpeech time: 0-5 min | Block: 15-30s\nSpeech time: 5-10 min | Block: 30-60s\nSpeech time: 10-20 min | Block: 45-90s\nSpeech time: 20+ min | Block: 60-120s`,
             generate: 'Generate Bilingual Text',
             outputTitle: 'Bilingual Speech',
             copy: 'Copy to Clipboard',
@@ -453,8 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
             validationMissing: 'Please enter text for both languages.',
             validationSlides: (enCount, frCount) => `Slide count mismatch: English has ${enCount}, French has ${frCount}. Check your "#" headings.`,
             validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount}, French has ${frCount}. Please align them.`,
-            modeSummarySpeech: (start, block, words) => `Speech • Start: ${start} • Switch every: ${block}s (~${words} words)`,
-            modeSummaryPresentation: (start, slideMode) => `Presentation • Start: ${start} • Mode: ${slideMode}`,
+            modeSummarySpeech: (start, block, words, optimal) => `Speech | Start: ${start} | Switch every: ${block}s (~${words} words)${optimal ? ` | Optimal: ${optimal}s` : ''}`,
+            modeSummaryPresentation: (start, slideMode) => `Presentation | Start: ${start} | Mode: ${slideMode}`,
             exampleLoadedPresentation: 'Presentation example loaded.',
             exampleLoadedSpeech: 'Speech example loaded.',
             exampleLoadError: 'Could not load examples.',
@@ -463,60 +484,125 @@ document.addEventListener('DOMContentLoaded', () => {
             expandFr: 'Expand French text'
         },
         fr: {
-            appTitle: 'Générateur de texte bilingue',
-            subtitle: 'Créez un discours ou une présentation bilingue équilibré, alternant entre les versions complètes anglaise et française fournies',
+            appTitle: 'G\u00e9n\u00e9rateur de texte bilingue',
+            subtitle: 'Cr\u00e9ez un discours ou une pr\u00e9sentation bilingue \u00e9quilibr\u00e9, en alternant entre les versions compl\u00e8tes anglaise et fran\u00e7aise fournies',
             stepInputTitle: 'Saisir le texte',
-            stepSettingsTitle: 'Configurer et générer',
+            stepSettingsTitle: 'Configurer et g\u00e9n\u00e9rer',
             englishLabel: 'Version anglaise',
-            frenchLabel: 'Version française',
+            frenchLabel: 'Version fran\u00e7aise',
             englishPlaceholder: 'Collez le texte anglais ici...',
-            frenchPlaceholder: 'Collez le texte français ici...',
+            frenchPlaceholder: 'Collez le texte fran\u00e7ais ici...',
             formatTitle: 'Conseils de formatage',
-            formatGeneral: '<strong>Général :</strong> Assurez-vous que les deux versions ont le même nombre de paragraphes.',
-            formatSpeech: '<strong>Discours :</strong> Gardez l\'ordre des paragraphes identique.',
-            formatPresentation: '<strong>Présentation :</strong> Commencez les diapositives par « # » (ex : « # Diapo 1 »). Alignez les paragraphes.',
+            formatGeneral: '<strong>G\u00e9n\u00e9ral :</strong> Assurez-vous que les deux versions ont le m\u00eame nombre de paragraphes.',
+            formatSpeech: '<strong>Discours :</strong> Gardez le m\u00eame ordre de paragraphes dans chaque langue.',
+            formatPresentation: '<strong>Pr\u00e9sentation :</strong> Commencez chaque diapo par \"#\" (ex. \"# Diapo 1\"). Alignez les paragraphes sous chaque diapo.',
             loadSpeech: 'Exemple de discours',
-            loadPresentation: 'Exemple de présentation',
-            reset: 'Effacer / Réinitialiser',
-            settings: 'Paramètres',
+            loadPresentation: 'Exemple de pr\u00e9sentation',
+            reset: 'Effacer / R\u00e9initialiser',
+            settings: 'Param\u00e8tres',
             mode: 'Mode',
             speech: 'Discours',
-            presentation: 'Présentation',
-            modeTip: 'Discours : Bascule selon le temps.\nPrésentation : Sortie par diapositive.',
-            startingLanguage: 'Langue de départ',
+            presentation: 'Pr\u00e9sentation',
+            modeTip: 'Discours : blocs bas\u00e9s sur le temps.\nPr\u00e9sentation : sortie diapo par diapo.',
+            startingLanguage: 'Langue de d\u00e9part',
             english: 'Anglais',
-            french: 'Français',
+            french: 'Fran\u00e7ais',
             slideMode: 'Mode diapositives',
             single: 'Unique',
             mixed: 'Mixte',
-            slideTip: 'Unique : Une langue par diapo.\nMixte : Les deux langues sur chaque diapo.',
-            blockTime: 'Durée par langue',
+            slideTip: 'Unique : une langue par diapo.\nMixte : les deux langues sur chaque diapo.',
+            blockTime: 'Dur\u00e9e par langue',
             blockHint: 'Temps avant de changer de langue.',
-            generate: 'Générer le texte',
+            durationOptimal: 'Optimal',
+            durationManual: 'Manuel',
+            durationTooltip: 'Temps pendant lequel vous parlez dans une langue avant de changer. Choisissez Optimal pour un \u00e9quilibre automatique ou Manuel pour fixer vous-m\u00eame.',
+            optimalResult: (avgWords, minTime, maxTime, bestTime) => `Bas\u00e9 sur une longueur moyenne de ${avgWords} mots :\n- Dur\u00e9e conseill\u00e9e : ${minTime}-${maxTime}s\n- Optimal trouv\u00e9 : ${bestTime}s`,
+            optimalResultPlaceholder: '',
+            optimalLabel: 'Optimal',
+            bestLabel: 'Meilleur',
+            optimalBandsTooltip: `Blocs sugg\u00e9r\u00e9s :\nTemps de discours : 0-5 min | Bloc : 15-30s\nTemps de discours : 5-10 min | Bloc : 30-60s\nTemps de discours : 10-20 min | Bloc : 45-90s\nTemps de discours : 20+ min | Bloc : 60-120s`,
+            generate: 'G\u00e9n\u00e9rer le texte bilingue',
             outputTitle: 'Texte bilingue',
             copy: 'Copier',
-            download: 'Télécharger .md',
+            download: 'T\u00e9l\u00e9charger .md',
             statsEnglish: 'Anglais',
-            statsFrench: 'Français',
+            statsFrench: 'Fran\u00e7ais',
             statsTotal: 'Total',
             words: 'mots',
             minAbbr: 'min',
             secAbbr: 's',
             validationMissing: 'Veuillez saisir du texte dans les deux langues.',
-            validationSlides: (enCount, frCount) => `Nombre de diapositives différent : ${enCount} (EN) vs ${frCount} (FR). Vérifiez les titres « # ».`,
-            validationParagraphs: (enCount, frCount) => `Nombre de paragraphes différent : ${enCount} (EN) vs ${frCount} (FR). Veuillez les aligner.`,
-            modeSummarySpeech: (start, block, words) => `Discours • Départ : ${start} • Change tous les : ${block}s (~${words} mots)`,
-            modeSummaryPresentation: (start, slideMode) => `Présentation • Départ : ${start} • Mode : ${slideMode}`,
-            exampleLoadedPresentation: 'Exemple de présentation chargé.',
-            exampleLoadedSpeech: 'Exemple de discours chargé.',
+            validationSlides: (enCount, frCount) => `Nombre de diapositives diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). V\u00e9rifiez les titres \"#\".`,
+            validationParagraphs: (enCount, frCount) => `Nombre de paragraphes diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). Veuillez les aligner.`,
+            modeSummarySpeech: (start, block, words, optimal) => `Discours | D\u00e9part : ${start} | Changement toutes les : ${block}s (~${words} mots)${optimal ? ` | Optimal : ${optimal}s` : ''}`,
+            modeSummaryPresentation: (start, slideMode) => `Pr\u00e9sentation | D\u00e9part : ${start} | Mode : ${slideMode}`,
+            exampleLoadedPresentation: 'Exemple de pr\u00e9sentation charg\u00e9.',
+            exampleLoadedSpeech: 'Exemple de discours charg\u00e9.',
             exampleLoadError: 'Impossible de charger les exemples.',
-            copySuccess: 'Copié !',
+            copySuccess: 'Copi\u00e9 !',
             expandEn: 'Agrandir le texte anglais',
-            expandFr: 'Agrandir le texte français'
+            expandFr: 'Agrandir le texte fran\u00e7ais'
         }
     };
 
     let currentLang = 'en';
+    let lastOptimal = null;
+
+    const calculateOptimal = (startLangFallback = 'en') => {
+        const enWords = merger.countWords(enInput.value);
+        const frWords = merger.countWords(frInput.value);
+        if (enWords === 0 || frWords === 0) return null;
+        const enSec = merger.estimateDuration(enWords);
+        const frSec = merger.estimateDuration(frWords);
+        const avgMinutes = ((enSec + frSec) / 2) / 60;
+        const avgWords = Math.round((enWords + frWords) / 2);
+
+        let minTime = 15;
+        let maxTime = 30;
+        if (avgMinutes > 20) {
+            minTime = 60;
+            maxTime = 120;
+        } else if (avgMinutes > 10) {
+            minTime = 45;
+            maxTime = 90;
+        } else if (avgMinutes > 5) {
+            minTime = 30;
+            maxTime = 60;
+        }
+
+        const targetMid = Math.round((minTime + maxTime) / 2);
+        let bestTime = targetMid;
+        const enParas = merger.parseParagraphs(enInput.value);
+        const frParas = merger.parseParagraphs(frInput.value);
+        const startLang = document.querySelector('input[name="start-lang"]:checked')?.value || startLangFallback;
+
+        if (enParas.length === frParas.length && enParas.length > 0) {
+            let bestGap = Number.POSITIVE_INFINITY;
+            for (let t = minTime; t <= maxTime; t += 5) {
+                const res = merger.merge(enInput.value, frInput.value, { startLang, blockTime: t });
+                const gap = Math.abs(res.enWords - res.frWords);
+                if (gap < bestGap || (gap === bestGap && Math.abs(t - targetMid) < Math.abs(bestTime - targetMid))) {
+                    bestGap = gap;
+                    bestTime = t;
+                }
+            }
+        }
+
+        return { avgWords, minTime, maxTime, bestTime };
+    };
+
+    const renderOptimalResult = () => {
+        if (!optimalResultEl) return;
+        const t = translations[currentLang];
+        if (lastOptimal) {
+            const { avgWords, minTime, maxTime, bestTime } = lastOptimal;
+            optimalResultEl.textContent = t.optimalResult(avgWords, minTime, maxTime, bestTime);
+            optimalResultEl.style.display = 'block';
+        } else {
+            optimalResultEl.textContent = '';
+            optimalResultEl.style.display = 'none';
+        }
+    };
 
     const applyTranslations = () => {
         const t = translations[currentLang];
@@ -555,6 +641,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('label-slide-mixed', t.mixed);
         setText('label-block-time', t.blockTime);
         setText('block-time-hint', t.blockHint);
+        setText('label-duration-optimal', t.durationOptimal);
+        setText('label-duration-manual', t.durationManual);
+        if (durationTooltip) durationTooltip.setAttribute('data-tooltip', t.durationTooltip);
+        if (optimalBandsTooltip) optimalBandsTooltip.setAttribute('data-tooltip', t.optimalBandsTooltip);
         setText('generate-btn', t.generate);
         setText('output-title', t.outputTitle);
         setText('copy-btn', t.copy);
@@ -573,6 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (langToggleBtn) langToggleBtn.textContent = currentLang === 'en' ? 'FR' : 'EN';
         updateBlockTimeDisplay(blockTimeInput.value, t);
+        renderOptimalResult();
         updateInputStats();
     };
 
@@ -585,6 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (startEn) startEn.checked = true;
         const slideSingle = document.getElementById('slide-single');
         if (slideSingle) slideSingle.checked = true;
+        const durationOptimalRadio = document.getElementById('duration-optimal');
+        if (durationOptimalRadio) durationOptimalRadio.checked = true;
+        syncDurationModeVisibility();
+        lastOptimal = null;
+        renderOptimalResult();
         blockTimeInput.value = 45;
         updateBlockTimeDisplay(45, translations[currentLang]);
         showValidation('');
@@ -615,6 +711,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const updateOptimalFromInputs = () => {
+        const selected = document.querySelector('input[name="duration-mode"]:checked');
+        if (selected && selected.value === 'optimal') {
+            lastOptimal = null;
+            renderOptimalResult();
+        }
+    };
+
     // Live word count & duration for input areas
     const updateInputStats = () => {
         const t = translations[currentLang];
@@ -624,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const frDurMin = Math.round(merger.estimateDuration(frWords) / 60);
         enCountDisplay.textContent = `${enWords} ${t.words} (~${enDurMin} ${t.minAbbr})`;
         frCountDisplay.textContent = `${frWords} ${t.words} (~${frDurMin} ${t.minAbbr})`;
+        updateOptimalFromInputs();
     };
 
     enInput.addEventListener('input', updateInputStats);
@@ -650,9 +755,21 @@ document.addEventListener('DOMContentLoaded', () => {
     blockTimeInput.addEventListener('input', (e) => {
         updateBlockTimeDisplay(e.target.value, translations[currentLang]);
     });
+
+    durationRadios.forEach(r => {
+        r.addEventListener('change', (e) => {
+            syncDurationModeVisibility();
+            if (e.target.value === 'optimal') {
+                lastOptimal = null;
+                renderOptimalResult();
+            }
+        });
+    });
+
+    syncDurationModeVisibility();
     applyTranslations();
 
-    // Mode toggle – show/hide block‑time setting
+    // Mode toggle – show/hide block-time setting
     const modeRadios = document.querySelectorAll('input[name="mode"]');
     const timeSetting = document.getElementById('time-setting');
     modeRadios.forEach(r => {
@@ -660,6 +777,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const isSpeech = e.target.value === 'speech';
             timeSetting.style.display = isSpeech ? 'flex' : 'none';
             presentationSettings.style.display = isSpeech ? 'none' : 'flex';
+            if (isSpeech) {
+                syncDurationModeVisibility();
+            } else {
+                if (optimalControls) optimalControls.style.display = 'none';
+                if (manualControls) manualControls.style.display = 'none';
+                lastOptimal = null;
+                renderOptimalResult();
+            }
         });
     });
 
@@ -705,8 +830,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 showValidation(t.validationParagraphs(enParas.length, frParas.length));
                 return;
             }
-            resultObj = merger.merge(enText, frText, { ...baseOptions, blockTime: blockTimeInput.value });
-            updateModeSummary(t.modeSummarySpeech(baseOptions.startLang.toUpperCase(), blockTimeInput.value, blockTimeWords(blockTimeInput.value)));
+            const durationMode = document.querySelector('input[name="duration-mode"]:checked')?.value || 'optimal';
+            let blockTimeValue = parseInt(blockTimeInput.value, 10) || 45;
+            let optimalSeconds = null;
+            if (durationMode === 'optimal') {
+                lastOptimal = calculateOptimal(baseOptions.startLang);
+                if (lastOptimal) {
+                    blockTimeValue = lastOptimal.bestTime;
+                    optimalSeconds = lastOptimal.bestTime;
+                }
+                renderOptimalResult();
+            }
+            resultObj = merger.merge(enText, frText, { ...baseOptions, blockTime: blockTimeValue });
+            updateModeSummary(t.modeSummarySpeech(
+                baseOptions.startLang.toUpperCase(),
+                blockTimeValue,
+                blockTimeWords(blockTimeValue),
+                optimalSeconds
+            ));
         }
 
         // Compute durations based on actually used words
