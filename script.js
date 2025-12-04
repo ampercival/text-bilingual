@@ -864,7 +864,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formatTextContent = (text) => {
         if (!text) return '';
-        let normalized = text.replace(/\r\n?/g, '\n').trimEnd();
+        let normalized = text.replace(/\r\n?/g, '\n');
+        // Auto-prefix "Slide X", "Diapo X", or "Diapositive X" with "# " if missing
+        normalized = normalized.replace(/(^|\n)(\s*)(Slide|Diapositive|Diapo)(\s+\d+)/gi, '$1$2# $3$4');
+        normalized = normalized.trimEnd();
         // Ensure a blank line after slide titles
         normalized = normalized.replace(/(^\s*#.+)(\n(?!\n))/gm, '$1\n\n');
         // Ensure a blank line between non-empty lines (paragraph separation)
