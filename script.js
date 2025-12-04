@@ -223,6 +223,7 @@ class BilingualMerger {
 
     // Presentation mode: build slides instead of a flowing speech.
     // slideMode: "single" (entire slide in one language) or "mixed" (half one language, half the other).
+    // mixedPattern: "alternating" (default) or "repeating".
     mergePresentation(englishText, frenchText, options) {
         const enSlides = this.parseSlides(englishText);
         const frSlides = this.parseSlides(frenchText);
@@ -298,7 +299,12 @@ class BilingualMerger {
             let lastEndLang = options.startLang;
 
             for (const meta of slidesMeta) {
-                const startLang = slidesOut.length === 0 ? options.startLang : lastEndLang;
+                let startLang;
+                if (options.mixedPattern === 'repeating') {
+                    startLang = options.startLang;
+                } else {
+                    startLang = slidesOut.length === 0 ? options.startLang : lastEndLang;
+                }
                 const otherLang = other(startLang);
                 const rawCut = Array.isArray(cutsArr) ? cutsArr[meta.index] : undefined;
                 const cut = meta.totalParas <= 1
@@ -412,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
     const statsDiv = document.getElementById('result-stats');
     const presentationSettings = document.getElementById('presentation-settings');
+    const mixedPatternSettings = document.getElementById('mixed-pattern-settings');
     const validationMessage = document.getElementById('validation-message');
     const modeSummary = document.getElementById('mode-summary');
     const formatTextBtn = document.getElementById('format-text-btn');
@@ -427,6 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadPresentationExampleBtn = document.getElementById('load-presentation-example');
     const resetBtn = document.getElementById('reset-btn');
     const langToggleBtn = document.getElementById('lang-toggle');
+    const slideRadios = document.querySelectorAll('input[name="slide-mode"]');
+    const mixedPatternRadios = document.querySelectorAll('input[name="mixed-pattern"]');
 
     // Helper: format seconds as "X min Y sec" with seconds rounded to nearest 5
     const formatTime = (seconds, t) => {
@@ -472,10 +481,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const syncDurationModeVisibility = () => {
-        const selected = document.querySelector('input[name="duration-mode"]:checked');
-        const mode = selected ? selected.value : 'optimal';
-        if (optimalControls) optimalControls.style.display = mode === 'optimal' ? 'block' : 'none';
-        if (manualControls) manualControls.style.display = mode === 'manual' ? 'block' : 'none';
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const slideMode = document.querySelector('input[name="slide-mode"]:checked').value;
+        const timeSetting = document.getElementById('time-setting');
+
+        if (mode === 'presentation') {
+            presentationSettings.style.display = 'flex';
+            mixedPatternSettings.style.display = slideMode === 'mixed' ? 'flex' : 'none';
+            timeSetting.style.display = 'none';
+            optimalControls.style.display = 'none';
+            manualControls.style.display = 'none';
+        } else {
+            presentationSettings.style.display = 'none';
+            mixedPatternSettings.style.display = 'none';
+            timeSetting.style.display = 'flex';
+            const durationMode = document.querySelector('input[name="duration-mode"]:checked').value;
+            if (durationMode === 'optimal') {
+                optimalControls.style.display = 'block';
+                manualControls.style.display = 'none';
+            } else {
+                optimalControls.style.display = 'none';
+                manualControls.style.display = 'block';
+            }
+        }
     };
 
     const translations = {
@@ -506,6 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
             slideMode: 'Slide Language Mode',
             single: 'Single',
             mixed: 'Mixed',
+            mixedModePattern: 'Mixed Mode Pattern',
+            mixedModePatternTooltip: 'Alternating: Slide 1 (A-B), Slide 2 (B-A).\nRepeating: Slide 1 (A-B), Slide 2 (A-B).',
+            alternating: 'Alternating',
+            repeating: 'Repeating',
             slideTip: 'Single: one language per slide.\nMixed: both languages on every slide.',
             blockTime: 'Language Duration',
             blockHint: 'Time before switching languages.',
@@ -534,11 +566,6 @@ document.addEventListener('DOMContentLoaded', () => {
             validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount}, French has ${frCount}. Please align them.`,
             modeSummarySpeech: (start, block, words, optimal) => `Speech | Start: ${start} | Switch every: ${block}s (~${words} words)${optimal ? ` | Optimal: ${optimal}s` : ''}`,
             modeSummaryPresentation: (start, slideMode) => `Presentation | Start: ${start} | Mode: ${slideMode}`,
-            exampleLoadedPresentation: 'Presentation example loaded.',
-            exampleLoadedSpeech: 'Speech example loaded.',
-            exampleLoadError: 'Could not load examples.',
-            copySuccess: 'Copied!',
-            expandEn: 'Expand English text',
             exampleLoadedPresentation: 'Presentation example loaded.',
             exampleLoadedSpeech: 'Speech example loaded.',
             exampleLoadError: 'Could not load examples.',
@@ -576,6 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
             slideMode: 'Mode diapositives',
             single: 'Unique',
             mixed: 'Mixte',
+            mixedModePattern: 'Modèle de mode mixte',
+            mixedModePatternTooltip: 'Alterné : Diapo 1 (A-B), Diapo 2 (B-A).\nRépété : Diapo 1 (A-B), Diapo 2 (A-B).',
+            alternating: 'Alterné',
+            repeating: 'Répété',
             slideTip: 'Unique : une langue par diapo.\nMixte : les deux langues sur chaque diapo.',
             blockTime: 'Dur\u00e9e par langue',
             blockHint: 'Temps avant de changer de langue.',
@@ -586,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
             optimalResultPlaceholder: '',
             optimalLabel: 'Optimal',
             bestLabel: 'Meilleur',
-            optimalBandsTooltip: `Blocs sugg\u00e9r\u00e9s :\nTemps de discours : 0-5 min | Bloc : 15-30s\nTemps de discours : 5-10 min | Bloc : 30-60s\nTemps de discours : 10-20 min | Bloc : 45-90s\nTemps de discours : 20+ min | Bloc : 60-120s`,
+            optimalBandsTooltip: `Blocs sugg\u00e9r\u00e9s :\nTemps de discours : 0-5 min | Block: 15-30s\nTemps de discours : 5-10 min | Block: 30-60s\nTemps de discours : 10-20 min | Block: 45-90s\nTemps de discours : 20+ min | Block: 60-120s`,
             generate: 'G\u00e9n\u00e9rer le texte bilingue',
             outputTitle: 'Texte bilingue',
             copy: 'Copier',
@@ -604,11 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
             validationParagraphs: (enCount, frCount) => `Nombre de paragraphes diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). Veuillez les aligner.`,
             modeSummarySpeech: (start, block, words, optimal) => `Discours | D\u00e9part : ${start} | Changement toutes les : ${block}s (~${words} mots)${optimal ? ` | Optimal : ${optimal}s` : ''}`,
             modeSummaryPresentation: (start, slideMode) => `Pr\u00e9sentation | D\u00e9part : ${start} | Mode : ${slideMode}`,
-            exampleLoadedPresentation: 'Exemple de pr\u00e9sentation charg\u00e9.',
-            exampleLoadedSpeech: 'Exemple de discours charg\u00e9.',
-            exampleLoadError: 'Impossible de charger les exemples.',
-            copySuccess: 'Copi\u00e9 !',
-            expandEn: 'Agrandir le texte anglais',
             exampleLoadedPresentation: 'Exemple de pr\u00e9sentation charg\u00e9.',
             exampleLoadedSpeech: 'Exemple de discours charg\u00e9.',
             exampleLoadError: 'Impossible de charger les exemples.',
@@ -719,6 +745,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('label-slide-mode', t.slideMode);
         setText('label-slide-single', t.single);
         setText('label-slide-mixed', t.mixed);
+        setText('label-mixed-pattern', t.mixedModePattern);
+        setText('label-pattern-alternating', t.alternating);
+        setText('label-pattern-repeating', t.repeating);
+        const patternTooltip = document.getElementById('pattern-tooltip');
+        if (patternTooltip) patternTooltip.setAttribute('data-tooltip', t.mixedModePatternTooltip);
         setText('label-block-time', t.blockTime);
         setText('block-time-hint', t.blockHint);
         setText('label-duration-optimal', t.durationOptimal);
@@ -878,6 +909,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    slideRadios.forEach(r => r.addEventListener('change', () => {
+        syncDurationModeVisibility();
+    }));
+
     syncDurationModeVisibility();
     applyTranslations();
 
@@ -918,6 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let resultObj;
         if (mode === 'presentation') {
             const slideMode = document.querySelector('input[name="slide-mode"]:checked').value;
+            const mixedPattern = document.querySelector('input[name="mixed-pattern"]:checked').value;
             const enSlides = merger.parseSlides(enText);
             const frSlides = merger.parseSlides(frText);
             if (enSlides.length !== frSlides.length) {
@@ -933,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
             }
-            resultObj = merger.mergePresentation(enText, frText, { ...baseOptions, slideMode });
+            resultObj = merger.mergePresentation(enText, frText, { ...baseOptions, slideMode, mixedPattern });
             updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), slideMode));
         } else {
             const enParas = merger.parseParagraphs(enText);
