@@ -17,7 +17,7 @@
             <div class="header-bar">
                 <div class="header-content">
                     <h1 id="app-title">Bilingual Text Generator</h1>
-                    <p class="subtitle" id="app-subtitle">Create a balanced bilingual speech or presentation,
+                    <p class="subtitle" id="app-subtitle">Deliver a balanced bilingual speech or presentation,
                         alternating between the full English and French versions provided</p>
                 </div>
                 <button id="lang-toggle" class="secondary-btn lang-toggle"
@@ -26,6 +26,16 @@
         </header>
 
         <main>
+            <details class="format-help" style="margin-bottom: 2rem;">
+                <summary id="desc-title">What it does</summary>
+                <div class="help-content" id="desc-content">
+                    This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English
+                    and French text into one script, with each language taking about half of the time. The tool picks
+                    good places to switch between languages and sets the right amount of time to stay in one language
+                    before switching.
+                </div>
+            </details>
+
             <!-- Step 1: Input -->
             <section class="step-section">
                 <div class="step-header">
@@ -51,7 +61,7 @@
 
                 <div class="input-section">
                     <div class="input-group">
-                        <label for="english-text" id="label-english">English Version</label>
+                        <label for="english-text" id="label-english">English Version (speech or speaking notes)</label>
                         <div class="textarea-wrapper">
                             <textarea id="english-text" placeholder="Paste the English speech here..."></textarea>
                             <button type="button" class="expand-btn" aria-label="Expand English text">⛶</button>
@@ -59,7 +69,7 @@
                         <div class="word-count" id="en-count">0 words</div>
                     </div>
                     <div class="input-group">
-                        <label for="french-text" id="label-french">French Version</label>
+                        <label for="french-text" id="label-french">French Version (speech or speaking notes)</label>
                         <div class="textarea-wrapper">
                             <textarea id="french-text" placeholder="Paste the French speech here..."></textarea>
                             <button type="button" class="expand-btn" aria-label="Expand French text">⛶</button>

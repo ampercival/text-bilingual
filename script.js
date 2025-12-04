@@ -481,11 +481,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const translations = {
         en: {
             appTitle: 'Bilingual Text Generator',
-            subtitle: 'Create a balanced bilingual speech or presentation, alternating between the full English and French versions provided',
+            subtitle: 'Deliver a balanced bilingual speech or presentation, alternating between the full English and French versions provided',
             stepInputTitle: 'Enter Text',
             stepSettingsTitle: 'Configure & Generate',
-            englishLabel: 'English Version',
-            frenchLabel: 'French Version',
+            englishLabel: 'English Version (speech or speaking notes)',
+            frenchLabel: 'French Version (speech or speaking notes)',
             englishPlaceholder: 'Paste English text here...',
             frenchPlaceholder: 'Paste French text here...',
             formatTitle: 'Formatting Tips',
@@ -545,15 +545,17 @@ document.addEventListener('DOMContentLoaded', () => {
             copySuccess: 'Copied!',
             expandEn: 'Expand English text',
             expandFr: 'Expand French text',
-            textFormatted: 'Text formatted!'
+            textFormatted: 'Text formatted!',
+            descTitle: 'What it does',
+            descContent: 'This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English and French text into one script, with each language taking about half of the time. The tool picks good places to switch between languages and sets the right amount of time to stay in one language before switching.'
         },
         fr: {
             appTitle: 'G\u00e9n\u00e9rateur de texte bilingue',
-            subtitle: 'Cr\u00e9ez un discours ou une pr\u00e9sentation bilingue \u00e9quilibr\u00e9, en alternant entre les versions compl\u00e8tes anglaise et fran\u00e7aise fournies',
+            subtitle: 'Prononcez un discours ou faites une pr\u00e9sentation bilingue \u00e9quilibr\u00e9e, en alternant les versions compl\u00e8tes en anglais et en fran\u00e7ais fournies',
             stepInputTitle: 'Saisir le texte',
             stepSettingsTitle: 'Configurer et g\u00e9n\u00e9rer',
-            englishLabel: 'Version anglaise',
-            frenchLabel: 'Version fran\u00e7aise',
+            englishLabel: 'Version anglaise (discours ou notes d\'allocution)',
+            frenchLabel: 'Version fran\u00e7aise (discours ou notes d\'allocution)',
             englishPlaceholder: 'Collez le texte anglais ici...',
             frenchPlaceholder: 'Collez le texte fran\u00e7ais ici...',
             formatTitle: 'Conseils de formatage',
@@ -613,7 +615,9 @@ document.addEventListener('DOMContentLoaded', () => {
             copySuccess: 'Copi\u00e9 !',
             expandEn: 'Agrandir le texte anglais',
             expandFr: 'Agrandir le texte fran\u00e7ais',
-            textFormatted: 'Texte format\u00e9 !'
+            textFormatted: 'Texte format\u00e9 !',
+            descTitle: 'Ce que fait cet outil',
+            descContent: 'Cet outil vous aide \u00e0 cr\u00e9er une version bilingue d\'un discours ou de notes d\'allocution. Il m\u00e9lange vos textes anglais et fran\u00e7ais en un seul script, chaque langue occupant environ la moiti\u00e9 du temps. L\'outil choisit les bons endroits pour changer de langue et d\u00e9finit la dur\u00e9e appropri\u00e9e pour rester dans une langue avant de changer.'
         }
     };
 
@@ -690,7 +694,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('step-settings-title', t.stepSettingsTitle);
         setText('label-english', t.englishLabel);
         setText('label-french', t.frenchLabel);
+        setText('label-french', t.frenchLabel);
         setText('format-title', t.formatTitle);
+        setText('desc-title', t.descTitle);
+        setText('desc-content', t.descContent);
         const setHTML = (id, value) => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = value;
