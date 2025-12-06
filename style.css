@@ -1189,7 +1189,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     line-height: 1.4;
     color: var(--text-muted);
     position: absolute;
-    top: 30%;
+    top: 15%;
 }
 
 .practice-sentence.active {
@@ -1197,7 +1197,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: blur(0);
-    font-size: 3.4rem;
+    font-size: 4.5rem;
     font-weight: 600;
     line-height: 1.3;
     color: var(--text-main);
@@ -1215,7 +1215,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     line-height: 1.4;
     color: var(--text-muted);
     position: absolute;
-    bottom: 30%;
+    bottom: 15%;
 }
 
 /* Word Highlighting */
