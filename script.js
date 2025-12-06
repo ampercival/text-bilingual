@@ -321,8 +321,20 @@ class PracticeController {
         });
     }
     openFromMerged(mergedText) {
-        const lines = mergedText.split(/\n+/).map(l => l.trim()).filter(Boolean);
-        this.content = lines.map(text => ({ text, lang: 'mix', words: text.split(/\s+/) }));
+        // Split by sentence delimiters (. ! ?) but keep them attached
+        // This regex looks for punctuation followed by whitespace or end of string
+        const sentences = mergedText.replace(/([.!?])\s+/g, '$1|').split('|');
+        
+        this.content = sentences.map(text => {
+            const trimmed = text.trim();
+            if (!trimmed) return null;
+            return { 
+                text: trimmed, 
+                lang: 'mix', // Language detection logic could go here
+                words: trimmed.split(/\s+/) 
+            };
+        }).filter(Boolean);
+
         if (!this.overlay || this.content.length === 0) return;
         this.totalWords = this.content.reduce((acc, sent) => acc + sent.words.length, 0);
         this.overlay.classList.add('active');
