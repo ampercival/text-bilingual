@@ -35,6 +35,60 @@
     --font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+[data-theme="dark"] {
+    --bg-color: #0f172a;
+    /* Slate 900 */
+    --card-bg: #1e293b;
+    /* Slate 800 */
+
+    --text-main: #f8fafc;
+    /* Slate 50 */
+    --text-muted: #94a3b8;
+    /* Slate 400 */
+    --text-light: #64748b;
+    /* Slate 500 */
+
+    --border-color: #334155;
+    /* Slate 700 */
+
+    --primary-light: #312e81;
+    /* Indigo 900 - Darker background for badges/focus */
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+
+    --scrollbar-track: #1e293b;
+    --scrollbar-thumb: #475569;
+}
+
+/* Global Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 5px;
+    border: 2px solid var(--bg-color);
+    /* Creates padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-color);
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -80,6 +134,12 @@ h1 {
     -webkit-text-fill-color: transparent;
 }
 
+[data-theme="dark"] h1 {
+    background: none;
+    -webkit-text-fill-color: var(--text-main);
+    color: var(--text-main);
+}
+
 .subtitle {
     color: var(--text-muted);
     font-size: 1.1rem;
@@ -91,7 +151,7 @@ h1 {
     font-weight: 700;
     padding: 0.5rem 1rem;
     border-radius: 2rem;
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--border-color);
     color: var(--text-main);
     cursor: pointer;
@@ -227,7 +287,7 @@ textarea::placeholder {
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border-color);
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--card-bg);
     color: var(--text-muted);
     border-radius: 0.5rem;
     font-size: 1rem;
@@ -237,7 +297,7 @@ textarea::placeholder {
 }
 
 .expand-btn:hover {
-    background: white;
+    background: var(--bg-color);
     color: var(--primary-color);
     border-color: var(--primary-color);
     transform: scale(1.05);
@@ -306,7 +366,7 @@ textarea::placeholder {
 
 /* Help Section */
 .format-help {
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     overflow: hidden;
@@ -326,7 +386,7 @@ textarea::placeholder {
 }
 
 .format-help summary:hover {
-    background-color: #f8fafc;
+    background-color: var(--bg-color);
 }
 
 .format-help summary::after {
@@ -495,7 +555,7 @@ textarea::placeholder {
 }
 
 .toggle-switch input[type="radio"]:checked+label {
-    background-color: white;
+    background-color: var(--card-bg);
     color: var(--primary-color);
     box-shadow: var(--shadow-sm);
     font-weight: 600;
@@ -584,7 +644,7 @@ input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     width: 20px;
     height: 20px;
-    background: white;
+    background: var(--card-bg);
     border: 2px solid var(--primary-color);
     border-radius: 50%;
     cursor: pointer;
@@ -598,7 +658,7 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
     width: 20px;
     height: 20px;
-    background: white;
+    background: var(--card-bg);
     border: 2px solid var(--primary-color);
     border-radius: 50%;
     cursor: pointer;
@@ -754,7 +814,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .secondary-btn {
-    background-color: white;
+    background-color: var(--card-bg);
     border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 0.6rem 1.2rem;
@@ -767,7 +827,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .secondary-btn:hover {
-    background-color: #f8fafc;
+    background-color: var(--bg-color);
     border-color: var(--text-muted);
 }
 
@@ -776,7 +836,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     gap: 2rem;
     margin-bottom: 1.5rem;
     padding: 1rem 1.5rem;
-    background-color: #f1f5f9;
+    background-color: var(--bg-color);
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     color: var(--text-muted);
@@ -788,14 +848,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .markdown-preview {
-    background-color: #f8fafc;
+    background-color: var(--bg-color);
     padding: 2rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     white-space: pre-wrap;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.95rem;
-    color: #334155;
+    color: var(--text-main);
     line-height: 1.7;
     max-height: 600px;
     overflow-y: auto;
@@ -805,8 +865,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
     text-align: center;
     margin: 2rem 0;
     padding: 0.75rem;
-    background: #e0e7ff;
-    color: #3730a3;
+    background: var(--primary-light);
+    color: var(--primary-color);
     border-radius: var(--radius-sm);
     font-weight: 500;
     font-size: 0.95rem;
@@ -818,8 +878,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
     bottom: 2rem;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background-color: #1e293b;
-    color: white;
+    background-color: var(--text-main);
+    color: var(--bg-color);
     padding: 0.75rem 1.5rem;
     border-radius: 2rem;
     box-shadow: var(--shadow-lg);

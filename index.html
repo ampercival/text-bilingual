@@ -16,63 +16,57 @@
         <header>
             <div class="header-bar">
                 <div class="header-content">
-                    <h1 id="app-title">Bilingual Text Generator</h1>
-                    <p class="subtitle" id="app-subtitle">Deliver a balanced bilingual speech or presentation,
-                        alternating between the full English and French versions provided</p>
+                    <h1 id="app-title"></h1>
+                    <p class="subtitle" id="app-subtitle"></p>
                 </div>
-                <button id="lang-toggle" class="secondary-btn lang-toggle"
-                    aria-label="Toggle interface language">FR</button>
+                <div class="header-actions" style="display: flex; gap: 0.5rem;">
+                    <button id="theme-toggle" class="secondary-btn lang-toggle" aria-label="Toggle theme">
+                        <span id="theme-icon">🌙</span>
+                    </button>
+                    <button id="lang-toggle" class="secondary-btn lang-toggle"
+                        aria-label="Toggle interface language">FR</button>
+                </div>
             </div>
         </header>
 
         <main>
             <details class="format-help" style="margin-bottom: 2rem;">
-                <summary id="desc-title">What it does</summary>
-                <div class="help-content" id="desc-content">
-                    This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English
-                    and French text into one script, with each language taking about half of the time. The tool picks
-                    good places to switch between languages and sets the right amount of time to stay in one language
-                    before switching.
-                </div>
+                <summary id="desc-title"></summary>
+                <div class="help-content" id="desc-content"></div>
             </details>
 
             <!-- Step 1: Input -->
             <section class="step-section">
                 <div class="step-header">
                     <span class="step-badge">1</span>
-                    <h2 id="step-input-title">Enter Text</h2>
+                    <h2 id="step-input-title"></h2>
                 </div>
 
                 <details class="format-help">
-                    <summary id="format-title">Formatting Tips</summary>
+                    <summary id="format-title"></summary>
                     <div class="help-content">
                         <ul>
-                            <li id="format-general"><strong>General:</strong> Make sure the English and French versions
-                                use the same paragraphs in the same order.</li>
-                            <li id="format-speech"><strong>Speech mode:</strong> Paste your text in both languages. Keep
-                                the paragraph order the same in each version.</li>
-                            <li id="format-presentation"><strong>Presentation mode:</strong> Start each slide with a
-                                line beginning with “#” (for example: <code># Slide 1 - Title</code>). Under each slide,
-                                provide the English and French text. Follow the same paragraph order in both versions.
-                            </li>
+                            <li id="format-general"></li>
+                            <li id="format-speech"></li>
+                            <li id="format-presentation"></li>
                         </ul>
                     </div>
                 </details>
 
                 <div class="input-section">
                     <div class="input-group">
-                        <label for="english-text" id="label-english">English Version (speech or speaking notes)</label>
+                        <label for="english-text" id="label-english"></label>
                         <div class="textarea-wrapper">
-                            <textarea id="english-text" placeholder="Paste the English speech here..."></textarea>
-                            <button type="button" class="expand-btn" aria-label="Expand English text">⛶</button>
+                            <textarea id="english-text"></textarea>
+                            <button type="button" class="expand-btn"></button>
                         </div>
                         <div class="word-count" id="en-count">0 words</div>
                     </div>
                     <div class="input-group">
-                        <label for="french-text" id="label-french">French Version (speech or speaking notes)</label>
+                        <label for="french-text" id="label-french"></label>
                         <div class="textarea-wrapper">
-                            <textarea id="french-text" placeholder="Paste the French speech here..."></textarea>
-                            <button type="button" class="expand-btn" aria-label="Expand French text">⛶</button>
+                            <textarea id="french-text"></textarea>
+                            <button type="button" class="expand-btn"></button>
                         </div>
                         <div class="word-count" id="fr-count">0 words</div>
                     </div>
@@ -81,14 +75,13 @@
                 <div class="examples-actions">
                     <div class="format-action">
                         <button id="format-text-btn" class="secondary-btn">
-                            <span id="format-text-label">Format Text</span>
-                            <span class="info-icon" id="format-tooltip"
-                                data-tooltip="Optional: Tries to clean up and format your raw text for you.">i</span>
+                            <span id="format-text-label"></span>
+                            <span class="info-icon" id="format-tooltip">i</span>
                         </button>
                     </div>
-                    <button id="load-speech-example" class="text-btn">Load Speech Example</button>
-                    <button id="load-presentation-example" class="text-btn">Load Presentation Example</button>
-                    <button id="reset-btn" class="text-btn text-btn-danger">Clear / Reset</button>
+                    <button id="load-speech-example" class="text-btn"></button>
+                    <button id="load-presentation-example" class="text-btn"></button>
+                    <button id="reset-btn" class="text-btn text-btn-danger"></button>
                 </div>
             </section>
 
@@ -96,76 +89,71 @@
             <section class="step-section">
                 <div class="step-header">
                     <span class="step-badge">2</span>
-                    <h2 id="step-settings-title">Configure & Generate</h2>
+                    <h2 id="step-settings-title"></h2>
                 </div>
 
                 <div class="controls-section">
                     <div class="control-card">
                         <!-- Mode Selection -->
                         <div class="control-row">
-                            <label><span id="label-mode-text">Mode</span> <span class="info-icon" tabindex="0"
-                                    id="mode-tooltip"
-                                    data-tooltip="Speech: time-based blocks. Presentation: slide-by-slide output.">i</span></label>
+                            <label><span id="label-mode-text"></span> <span class="info-icon" tabindex="0"
+                                    id="mode-tooltip">i</span></label>
                             <div class="toggle-switch">
                                 <input type="radio" id="mode-speech" name="mode" value="speech" checked>
-                                <label for="mode-speech" id="label-mode-speech">Speech</label>
+                                <label for="mode-speech" id="label-mode-speech"></label>
                                 <input type="radio" id="mode-presentation" name="mode" value="presentation">
-                                <label for="mode-presentation" id="label-mode-presentation">Presentation</label>
+                                <label for="mode-presentation" id="label-mode-presentation"></label>
                             </div>
                         </div>
 
                         <!-- Starting Language -->
                         <div class="control-row">
-                            <label id="label-starting-lang">Starting Language</label>
+                            <label id="label-starting-lang"></label>
                             <div class="toggle-switch">
                                 <input type="radio" id="start-en" name="start-lang" value="en" checked>
-                                <label for="start-en" id="label-start-en">English</label>
+                                <label for="start-en" id="label-start-en"></label>
                                 <input type="radio" id="start-fr" name="start-lang" value="fr">
-                                <label for="start-fr" id="label-start-fr">French</label>
+                                <label for="start-fr" id="label-start-fr"></label>
                             </div>
                         </div>
 
                         <!-- Presentation Specific Settings -->
                         <div class="control-row" id="presentation-settings" style="display: none;">
-                            <label><span id="label-slide-mode">Slide Language Mode</span> <span class="info-icon"
-                                    tabindex="0" id="slide-tooltip"
-                                    data-tooltip="Single: one language per slide.&#10;Mixed: split each slide between both languages.">i</span></label>
+                            <label><span id="label-slide-mode"></span> <span class="info-icon" tabindex="0"
+                                    id="slide-tooltip">i</span></label>
                             <div class="toggle-switch">
                                 <input type="radio" id="slide-single" name="slide-mode" value="single" checked>
-                                <label for="slide-single" id="label-slide-single">Single</label>
+                                <label for="slide-single" id="label-slide-single"></label>
                                 <input type="radio" id="slide-mixed" name="slide-mode" value="mixed">
-                                <label for="slide-mixed" id="label-slide-mixed">Mixed</label>
+                                <label for="slide-mixed" id="label-slide-mixed"></label>
                             </div>
                         </div>
 
                         <!-- Mixed Mode Pattern -->
                         <div class="control-row" id="mixed-pattern-settings" style="display: none;">
-                            <label><span id="label-mixed-pattern">Mixed Mode Pattern</span> <span class="info-icon"
-                                    tabindex="0" id="pattern-tooltip"
-                                    data-tooltip="Alternating: Slide 1 (A-B), Slide 2 (B-A).&#10;Repeating: Slide 1 (A-B), Slide 2 (A-B).">i</span></label>
+                            <label><span id="label-mixed-pattern"></span> <span class="info-icon" tabindex="0"
+                                    id="pattern-tooltip">i</span></label>
                             <div class="toggle-switch">
                                 <input type="radio" id="pattern-alternating" name="mixed-pattern" value="alternating"
                                     checked>
-                                <label for="pattern-alternating" id="label-pattern-alternating">Alternating</label>
+                                <label for="pattern-alternating" id="label-pattern-alternating"></label>
                                 <input type="radio" id="pattern-repeating" name="mixed-pattern" value="repeating">
-                                <label for="pattern-repeating" id="label-pattern-repeating">Repeating</label>
+                                <label for="pattern-repeating" id="label-pattern-repeating"></label>
                             </div>
                         </div>
 
                         <!-- Time Setting -->
                         <div class="control-row" id="time-setting">
                             <div class="control-label-with-info">
-                                <label id="label-block-time">Language Duration</label>
-                                <span class="info-icon" tabindex="0" id="duration-tooltip"
-                                    data-tooltip="How long you stay in one language before switching. Use Optimal to auto-balance or Manual to set it yourself.">i</span>
+                                <label id="label-block-time"></label>
+                                <span class="info-icon" tabindex="0" id="duration-tooltip">i</span>
                             </div>
                             <div class="toggle-switch sm">
                                 <input type="radio" id="duration-optimal" name="duration-mode" value="optimal" checked>
-                                <label for="duration-optimal" id="label-duration-optimal">Optimal</label>
-                                <span class="info-icon" tabindex="0" id="optimal-bands-tooltip"
-                                    data-tooltip="Suggested blocks (by total speech time):&#10;- 0-5 min | Block: 15-30s&#10;- 5-10 min | Block: 30-60s&#10;- 10-20 min | Block: 45-90s&#10;- 20+ min | Block: 60-120s">i</span>
+                                <label for="duration-optimal" id="label-duration-optimal"></label>
+                                <span class="info-icon" tabindex="0" id="optimal-bands-tooltip">i</span>
                                 <input type="radio" id="duration-manual" name="duration-mode" value="manual">
-                                <label for="duration-manual" id="label-duration-manual">Manual</label>
+                                <label for="duration-manual" id="label-duration-manual"></label>
                             </div>
                         </div>
 
@@ -183,13 +171,13 @@
                                     <span>20s</span>
                                     <span>120s</span>
                                 </div>
-                                <p class="hint" id="block-time-hint">Time before switching languages.</p>
+                                <p class="hint" id="block-time-hint"></p>
                             </div>
                         </div>
                     </div>
 
                     <div class="action-area">
-                        <button id="generate-btn" class="primary-btn">Generate Bilingual Text</button>
+                        <button id="generate-btn" class="primary-btn"></button>
                     </div>
                     <div id="validation-message" class="validation-message" aria-live="polite"></div>
                 </div>
@@ -199,10 +187,10 @@
 
             <section class="output-section" id="output-section" style="display: none;">
                 <div class="output-header">
-                    <h2 id="output-title">Bilingual Speech</h2>
+                    <h2 id="output-title"></h2>
                     <div class="output-actions">
-                        <button id="copy-btn" class="secondary-btn">Copy to Clipboard</button>
-                        <button id="download-btn" class="secondary-btn">Download .md</button>
+                        <button id="copy-btn" class="secondary-btn"></button>
+                        <button id="download-btn" class="secondary-btn"></button>
                     </div>
                 </div>
                 <div id="result-stats" class="result-stats"></div>

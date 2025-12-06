@@ -436,6 +436,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const langToggleBtn = document.getElementById('lang-toggle');
     const slideRadios = document.querySelectorAll('input[name="slide-mode"]');
     const mixedPatternRadios = document.querySelectorAll('input[name="mixed-pattern"]');
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
 
     // Helper: format seconds as "X min Y sec" with seconds rounded to nearest 5
     const formatTime = (seconds, t) => {
@@ -562,6 +564,9 @@ document.addEventListener('DOMContentLoaded', () => {
             minAbbr: 'min',
             secAbbr: 'sec',
             validationMissing: 'Please enter text for both languages.',
+            validationNoSlides: 'No slides found. Please start slide lines with "#".',
+            validationNoEnSlides: 'No slides found in English text. Use "#" for slides.',
+            validationNoFrSlides: 'No slides found in French text. Use "#" for slides.',
             validationSlides: (enCount, frCount) => `Slide count mismatch: English has ${enCount}, French has ${frCount}. Check your "#" headings.`,
             validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount}, French has ${frCount}. Please align them.`,
             modeSummarySpeech: (start, block, words, optimal) => `Speech | Start: ${start} | Switch every: ${block}s (~${words} words)${optimal ? ` | Optimal: ${optimal}s` : ''}`,
@@ -631,6 +636,9 @@ document.addEventListener('DOMContentLoaded', () => {
             minAbbr: 'min',
             secAbbr: 's',
             validationMissing: 'Veuillez saisir du texte dans les deux langues.',
+            validationNoSlides: 'Aucune diapositive trouv\u00e9e. Commencez les lignes de diapositive par "#".',
+            validationNoEnSlides: 'Aucune diapositive trouv\u00e9e dans le texte anglais. Utilisez "#".',
+            validationNoFrSlides: 'Aucune diapositive trouv\u00e9e dans le texte fran\u00e7ais. Utilisez "#".',
             validationSlides: (enCount, frCount) => `Nombre de diapositives diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). V\u00e9rifiez les titres \"#\".`,
             validationParagraphs: (enCount, frCount) => `Nombre de paragraphes diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). Veuillez les aligner.`,
             modeSummarySpeech: (start, block, words, optimal) => `Discours | D\u00e9part : ${start} | Changement toutes les : ${block}s (~${words} mots)${optimal ? ` | Optimal : ${optimal}s` : ''}`,
@@ -917,7 +925,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     syncDurationModeVisibility();
+    syncDurationModeVisibility();
     applyTranslations();
+
+    // Theme Logic
+    const initTheme = () => {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            updateThemeIcon('dark');
+        } else {
+            updateThemeIcon('light');
+        }
+    };
+
+    const updateThemeIcon = (theme) => {
+        if (themeIcon) {
+            // SVGs using currentColor to match text color (solid black in light, solid white in dark)
+            const sunSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>`;
+            const moonSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>`;
+            themeIcon.innerHTML = theme === 'dark' ? sunSvg : moonSvg;
+        }
+    };
+
+    const toggleTheme = () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    };
+
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+    initTheme();
 
     // Mode toggle – show/hide block-time setting
     const modeRadios = document.querySelectorAll('input[name="mode"]');
@@ -959,6 +1004,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const mixedPattern = document.querySelector('input[name="mixed-pattern"]:checked').value;
             const enSlides = merger.parseSlides(enText);
             const frSlides = merger.parseSlides(frText);
+
+            if (enSlides.length === 0 && frSlides.length === 0) {
+                showValidation(t.validationNoSlides);
+                return;
+            }
+            if (enSlides.length === 0) {
+                showValidation(t.validationNoEnSlides);
+                return;
+            }
+            if (frSlides.length === 0) {
+                showValidation(t.validationNoFrSlides);
+                return;
+            }
+
             if (enSlides.length !== frSlides.length) {
                 showValidation(t.validationSlides(enSlides.length, frSlides.length));
                 return;
