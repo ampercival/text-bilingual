@@ -207,15 +207,15 @@
 
         <footer class="page-footer">
             <p>
-                Content on this site is licensed under
+                <span id="footer-license-text">Content on this site is licensed under</span>
                 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="license noopener" target="_blank">CC
-                    BY-NC 4.0</a>;
-                please credit the source for any non-commercial use. The source code
-                is available on
+                    BY-NC 4.0</a><span id="footer-source-text">;
+                    please credit the source for any non-commercial use. The source code
+                    is available on</span>
                 <a href="https://github.com/ampercival/text-bilingual" rel="noopener" target="_blank">GitHub</a>.
             </p>
             <p>
-                © <span id="year"></span> Aaron Percival. All rights reserved.
+                © <span id="year"></span> <span id="footer-rights">Aaron Percival. All rights reserved.</span>
             </p>
             <script>
                 document.getElementById("year").textContent = new Date().getFullYear();
@@ -238,13 +238,14 @@
             <div class="modal-controls">
                 <div class="wpm-control">
                     <div class="wpm-header">
-                        <label for="wpm-slider">Speed: <span id="wpm-display">140 WPM</span></label>
+                        <label for="wpm-slider"><span id="practice-speed-label">Speed:</span> <span id="wpm-display">140
+                                WPM</span></label>
                         <span id="wpm-guidance" class="wpm-guidance">Normal pace</span>
                     </div>
                     <input type="range" id="wpm-slider" min="60" max="220" value="140" step="5">
                     <div class="wpm-markers">
-                        <span class="marker-label left">Slow (100)</span>
-                        <span class="marker-label right">Fast (180+)</span>
+                        <span id="stat-marker-left" class="marker-label left">Slow (100)</span>
+                        <span id="stat-marker-right" class="marker-label right">Fast (180+)</span>
                     </div>
                     <p id="wpm-description" class="wpm-description">
                         Normal pace (130-160 WPM): Common for public speaking. Balances information and engagement.
@@ -253,27 +254,27 @@
 
                 <div class="playback-controls">
                     <button id="practice-play-btn" class="primary-btn practice-action-btn">
-                        <span class="icon">▶</span> Play
+                        <span class="icon">▶</span> <span id="btn-play-label">Play</span>
                     </button>
                     <button id="practice-pause-btn" class="secondary-btn practice-action-btn" style="display: none;">
-                        <span class="icon">⏸</span> Pause
+                        <span class="icon">⏸</span> <span id="btn-pause-label">Pause</span>
                     </button>
                     <button id="practice-reset-btn" class="secondary-btn practice-action-btn">
-                        <span class="icon">↺</span> Reset
+                        <span class="icon">↺</span> <span id="btn-reset-label">Reset</span>
                     </button>
                 </div>
 
                 <div class="timer-stats">
                     <div class="stat-item">
-                        <span class="stat-label">Current</span>
+                        <span id="stat-current-label" class="stat-label">Current</span>
                         <span id="timer-current" class="stat-value">00:00</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Remaining</span>
+                        <span id="stat-remaining-label" class="stat-label">Remaining</span>
                         <span id="timer-remaining" class="stat-value">00:00</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Total</span>
+                        <span id="stat-total-label" class="stat-label">Total</span>
                         <span id="timer-total" class="stat-value">00:00</span>
                     </div>
                 </div>

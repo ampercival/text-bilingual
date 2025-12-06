@@ -293,8 +293,14 @@ class PracticeController {
         this.elapsedPaused = 0;
         this.lastPauseStart = 0;
         this.fontSize = 150;
+        this.t = {}; // Translations
         this.bindEvents();
     }
+    setTranslations(t) {
+        this.t = t;
+        this.updateSpeedDisplay(); // Re-render guidance with new lang
+    }
+
     bindEvents() {
         if (this.playBtn) this.playBtn.addEventListener('click', () => this.start());
         if (this.pauseBtn) this.pauseBtn.addEventListener('click', () => this.pause());
@@ -333,17 +339,17 @@ class PracticeController {
         // Robust generic approach: remove spaces around punctuation that should appear attached?
         // User specifically asked for " and << or >>.
         cleanedText = cleanedText.replace(/"\s+([^"]*?)\s+"/g, '"$1"'); // Try to clean paired quotes if possible, else rely on simple trim
-        
+
         // Split by sentence delimiters (. ! ?) but keep them attached
         const sentences = cleanedText.replace(/([.!?])\s+/g, '$1|').split('|');
-        
+
         this.content = sentences.map(text => {
             const trimmed = text.trim();
             if (!trimmed) return null;
-            return { 
-                text: trimmed, 
+            return {
+                text: trimmed,
                 lang: 'mix', // Language detection logic could go here
-                words: trimmed.split(/\s+/) 
+                words: trimmed.split(/\s+/)
             };
         }).filter(Boolean);
 
@@ -356,9 +362,9 @@ class PracticeController {
         this.updateTotalDuration();
         this.applyFontSize();
     }
-    
+
     // ... close, reset, togglePlay, start, pause, stop, updatePlayButton, adjustSpeed, updateSpeedDisplay, changeFontSize, applyFontSize, runCountdown, prepareContent ...
-    
+
     tick() {
         if (!this.isPlaying) return;
         if (this.currentIndex >= this.content.length) {
@@ -380,21 +386,21 @@ class PracticeController {
 
         // Check if we finished the sentence
         if (this.currentSentenceWordIdx >= totalSentenceWords) {
-             // Calculate pause duration based on punctuation of the FINISHED sentence
+            // Calculate pause duration based on punctuation of the FINISHED sentence
             let pause = 0;
             const lastChar = currentSentence.text.slice(-1);
             if ('.!?'.includes(lastChar)) pause = this.baseDelay * 2.0; // 2x word length pause
-            else if (',;:'.includes(lastChar)) pause = this.baseDelay * 1.0; 
-            
+            else if (',;:'.includes(lastChar)) pause = this.baseDelay * 1.0;
+
             // Advance to next sentence IMMEDIATELY so user can see it during the pause
             this.currentIndex++;
             this.currentSentenceWordIdx = -1; // -1 indicates "before first word" state
-            
+
             if (this.currentIndex >= this.content.length) {
                 this.stop(); // End of session
                 return;
             }
-            
+
             this.updateThreeSentences(); // Update view to show new sentence
             this.updateRunningTimers();
 
@@ -404,7 +410,7 @@ class PracticeController {
                 this.tick();
             }, pause);
         } else {
-             // Move to next word
+            // Move to next word
             this.timer = setTimeout(() => {
                 this.currentSentenceWordIdx++;
                 this.currentWordGlobalIdx++;
@@ -486,9 +492,9 @@ class PracticeController {
     updateSpeedDisplay() {
         if (this.wpmDisplay) this.wpmDisplay.textContent = `${this.wpm} WPM`;
         if (this.wpmGuidance) {
-            if (this.wpm < 110) this.wpmGuidance.textContent = 'Slow pace';
-            else if (this.wpm > 180) this.wpmGuidance.textContent = 'Fast pace';
-            else this.wpmGuidance.textContent = 'Normal pace';
+            if (this.wpm < 110) this.wpmGuidance.textContent = this.t.practiceSpeedSlow || 'Slow pace';
+            else if (this.wpm > 180) this.wpmGuidance.textContent = this.t.practiceSpeedFast || 'Fast pace';
+            else this.wpmGuidance.textContent = this.t.practiceSpeedNormal || 'Normal pace';
         }
     }
     changeFontSize(delta) {
@@ -504,18 +510,18 @@ class PracticeController {
     runCountdown() {
         // Ensure text is visible for preparation
         this.updateThreeSentences();
-        
+
         const overlay = document.getElementById('countdown-overlay');
         const number = document.getElementById('countdown-number');
-        
+
         if (!overlay || !number) return Promise.resolve();
-        
+
         return new Promise(resolve => {
             overlay.style.display = 'flex';
             let count = 3;
             number.textContent = count;
             // Indigo color is handled by CSS var(--primary-color) usually, ensuring styling matches
-            
+
             const int = setInterval(() => {
                 count--;
                 if (count > 0) {
@@ -545,7 +551,7 @@ class PracticeController {
         }
         return combined;
     }
-    
+
     updateThreeSentences() {
         const prev = this.content[this.currentIndex - 1];
         const curr = this.content[this.currentIndex];
@@ -555,10 +561,10 @@ class PracticeController {
             this.prevText.innerHTML = prev ? prev.text : '&nbsp;';
             this.prevText.className = prev ? `practice-sentence prev ${prev.lang}` : 'practice-sentence prev';
         }
-        
+
         if (this.currentText) {
             // Apply highlighting to the current sentence
-            this.currentText.innerHTML = curr ? this.highlight(curr, this.currentSentenceWordIdx) : 'End of session';
+            this.currentText.innerHTML = curr ? this.highlight(curr, this.currentSentenceWordIdx) : (this.t.endOfSession || 'End of session');
             this.currentText.className = curr ? `practice-sentence active ${curr.lang}` : 'practice-sentence active';
         }
 
@@ -566,9 +572,9 @@ class PracticeController {
             this.nextText.innerHTML = next ? next.text : '&nbsp;';
             this.nextText.className = next ? `practice-sentence next ${next.lang}` : 'practice-sentence next';
         }
-        
+
         if (this.practiceContent) {
-           this.practiceContent.style.display = 'none';
+            this.practiceContent.style.display = 'none';
         }
     }
 
@@ -578,7 +584,7 @@ class PracticeController {
             // Highlight current word
             if (idx === activeWordIndex) {
                 return `<span class="practice-word active">${word}</span>`;
-            } 
+            }
             // Words already spoken
             else if (idx < activeWordIndex) {
                 return `<span class="practice-word spoken">${word}</span>`;
@@ -650,142 +656,205 @@ document.addEventListener('DOMContentLoaded', () => {
     const practiceBtn = document.getElementById('practice-btn');
     let currentLang = 'en';
     let lastOptimal = null;
+    let lastGenParams = null;
     const translations = {
         en: {
-            title: "Bilingual Text Generator",
-            subtitle: "Create perfectly timed bilingual speeches and presentations.",
-            descTitle: "What this tool does",
-            descContent: "Merge English and French paragraphs with balanced timing. Speech mode flows paragraph-by-paragraph; presentation mode aligns slides marked with '#'.",
-            stepInputTitle: "Add your text",
-            formatTitle: "Formatting tips",
-            formatGeneral: "Separate paragraphs with a blank line for the cleanest alignment.",
-            formatSpeech: "Speech mode expects paragraph counts to match between languages.",
-            formatPresentation: "Use '#' before slide titles (e.g., '# Slide 1') for presentation mode.",
-            englishLabel: "English",
-            frenchLabel: "French",
-            englishPlaceholder: "Paste English text here...",
-            frenchPlaceholder: "Paste French text here...",
-            blockTime: "Block Time (sec):",
-            blockHint: "Target duration for each language block",
-            generate: "Generate Bilingual Text",
-            reset: "Reset",
-            copy: "Copy to Clipboard",
-            download: "Download .md",
-            validationMissing: "Please enter text in both languages.",
-            validationParagraphs: (e, f) => `Paragraph count mismatch: English (${e}), French (${f}).`,
-            validationSlides: (e, f) => `Slide count mismatch: English (${e}), French (${f}).`,
-            validationNoSlides: "No slides found (use # for titles).",
-            validationNoEnSlides: "No English slides found (use # for titles).",
-            validationNoFrSlides: "No French slides found (use # for titles).",
-            statsEnglish: "English",
-            statsFrench: "French",
-            statsTotal: "Total",
-            words: "words",
-            copySuccess: "Copied!",
-            exampleLoadedSpeech: "Speech example loaded.",
-            exampleLoadedPresentation: "Presentation example loaded.",
-            exampleLoadError: "Error loading examples.",
-            modeSummarySpeech: (sl, bt, bw, opt) => `Speech mode: starting ${sl}, blocks ~${bt}s.`,
-            modeSummaryPresentation: (sl, sm) => `Presentation mode: starting ${sl}, slide mode ${sm}.`,
-            loadSpeech: "Load Speech Example",
-            loadPresentation: "Load Presentation Example",
-            formatButton: "Format Text",
-            settings: "Settings",
-            stepSettingsTitle: "Settings & generate",
-            stepOutputTitle: "Your merged text",
-            mode: "Mode:",
-            speech: "Speech",
-            presentation: "Presentation",
-            startingLanguage: "Starting language:",
-            english: "English",
-            french: "French",
-            slideMode: "Slide mode:",
-            single: "Single",
-            mixed: "Mixed",
-            mixedModePattern: "Mixed pattern:",
-            alternating: "Alternating",
-            repeating: "Repeating",
-            mixedModePatternTooltip: "Alternating: EN then FR on alternating slides. Repeating: EN then FR on every slide.",
-            durationOptimal: "Optimal",
-            durationManual: "Manual",
-            durationTooltip: "Optimal calculates a recommended block time from your text.",
-            optimalBandsTooltip: "Shows the recommended switch interval based on rhythm.",
-            outputTitle: "Merged Output",
-            modeTip: "Speech flows continuously. Presentation outputs slides.",
-            slideTip: "Use # at the start of lines for slide titles.",
-            expandEn: "Expand English input",
-            expandFr: "Expand French input",
-            formatTooltip: "Auto-format text for better processing.",
-            textFormatted: "Text formatted!",
-            liveMode: "Live Mode"
+            appTitle: 'Bilingual Text Generator',
+            subtitle: 'Deliver a balanced bilingual speech or presentation, alternating between the full English and French versions provided',
+            stepInputTitle: 'Enter Text',
+            stepSettingsTitle: 'Configure & Generate',
+            englishLabel: 'English Version (speech or speaking notes)',
+            frenchLabel: 'French Version (speech or speaking notes)',
+            englishPlaceholder: 'Paste English text here...',
+            frenchPlaceholder: 'Paste French text here...',
+            formatTitle: 'Formatting Tips',
+            formatGeneral: '<strong>General:</strong> Ensure both versions have the same number of paragraphs.',
+            formatSpeech: '<strong>Speech:</strong> Keep paragraph order identical in both languages.',
+            formatPresentation: '<strong>Presentation:</strong> Start slides with "#" (e.g., "# Slide 1"). Match paragraphs under each slide.',
+            loadSpeech: 'Load Speech Example',
+            loadPresentation: 'Load Presentation Example',
+            reset: 'Clear / Reset',
+            settings: 'Settings',
+            mode: 'Mode',
+            speech: 'Speech',
+            presentation: 'Presentation',
+            modeTip: 'Speech: time-based blocks.\nPresentation: slide-by-slide output.',
+            startingLanguage: 'Starting Language',
+            english: 'English',
+            french: 'French',
+            slideMode: 'Slide Language Mode',
+            single: 'Single',
+            mixed: 'Mixed',
+            mixedModePattern: 'Mixed Mode Pattern',
+            mixedModePatternTooltip: 'Alternating: Slide 1 (A-B), Slide 2 (B-A).\nRepeating: Slide 1 (A-B), Slide 2 (A-B).',
+            alternating: 'Alternating',
+            repeating: 'Repeating',
+            slideTip: 'Single: one language per slide.\nMixed: both languages on every slide.',
+            blockTime: 'Language Duration',
+            blockHint: 'Time before switching languages.',
+            durationOptimal: 'Optimal',
+            durationManual: 'Manual',
+            durationTooltip: 'Length of time you speak in one language before switching. Choose Optimal to auto-balance or Manual to set it yourself.',
+            optimalResult: (avgWords, minTime, maxTime, bestTime) => `Based on average length of ${avgWords} words:\n- Recommended: ${minTime}-${maxTime}s\n- Optimal found: ${bestTime}s`,
+            optimalResultPlaceholder: '',
+            optimalLabel: 'Optimal',
+            bestLabel: 'Best',
+            optimalBandsTooltip: `Suggested blocks:\nSpeech time: 0-5 min | Block: 15-30s\nSpeech time: 5-10 min | Block: 30-60s\nSpeech time: 10-20 min | Block: 45-90s\nSpeech time: 20+ min | Block: 60-120s`,
+            generate: 'Generate Bilingual Text',
+            outputTitle: 'Bilingual Speech',
+            copy: 'Copy to Clipboard',
+            download: 'Download .md',
+            statsEnglish: 'English',
+            statsFrench: 'French',
+            statsTotal: 'Total',
+            words: 'words',
+            formatButton: 'Format Text',
+            formatTooltip: 'Optional: Tries to clean up and format your raw text for you.',
+            minAbbr: 'min',
+            secAbbr: 'sec',
+            validationMissing: 'Please enter text for both languages.',
+            validationNoSlides: 'No slides found. Please start slide lines with "#".',
+            validationNoEnSlides: 'No slides found in English text. Use "#" for slides.',
+            validationNoFrSlides: 'No slides found in French text. Use "#" for slides.',
+            validationSlides: (enCount, frCount) => `Slide count mismatch: English has ${enCount}, French has ${frCount}. Check your "#" headings.`,
+            validationParagraphs: (enCount, frCount) => `Paragraph count mismatch: English has ${enCount}, French has ${frCount}. Please align them.`,
+            modeSummarySpeech: (start, block, words, optimal) => `Speech | Start: ${start} | Switch every: ${block}s (~${words} words)${optimal ? ` | Optimal: ${optimal}s` : ''}`,
+            modeSummaryPresentation: (start, slideMode) => `Presentation | Start: ${start} | Mode: ${slideMode}`,
+            exampleLoadedPresentation: 'Presentation example loaded.',
+            exampleLoadedSpeech: 'Speech example loaded.',
+            exampleLoadError: 'Could not load examples.',
+            copySuccess: 'Copied!',
+            expandEn: 'Expand English text',
+            expandFr: 'Expand French text',
+            textFormatted: 'Text formatted!',
+            descTitle: 'What it does',
+            descContent: 'This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English and French text into one script, with each language taking about half of the time. The tool picks good places to switch between languages and sets the right amount of time to stay in one language before switching.',
+            // Additions
+            liveMode: 'Live Mode',
+            themeToggleAriaLabel: 'Toggle theme',
+            langToggleAriaLabel: 'Toggle interface language',
+            footerLicensePrefix: 'Content on this site is licensed under',
+            footerLicenseLink: 'CC BY-NC 4.0',
+            footerSourcePrefix: '; please credit the source for any non-commercial use. The source code is available on',
+            footerSourceLink: 'GitHub',
+            footerRights: 'Aaron Percival. All rights reserved.',
+            practiceTitle: 'Live Mode',
+            practiceDecreaseFont: 'Decrease font size',
+            practiceIncreaseFont: 'Increase font size',
+            practiceClose: 'Close practice mode',
+            practiceSpeed: 'Speed:',
+            practiceSpeedSlow: 'Slow',
+            practiceSpeedFast: 'Fast',
+            practiceSpeedNormal: 'Normal pace',
+            practiceLabelSlow: 'Slow (100)',
+            practiceLabelFast: 'Fast (180+)',
+            practiceDescription: 'Normal pace (130-160 WPM): Common for public speaking. Balances information and engagement.',
+            practicePlay: 'Play',
+            practicePause: 'Pause',
+            practiceReset: 'Reset',
+            practiceCurrent: 'Current',
+            practiceRemaining: 'Remaining',
+            practiceTotal: 'Total',
+            endOfSession: 'End of session'
         },
         fr: {
-            title: "Générateur de texte bilingue",
-            subtitle: "Créez des discours et présentations bilingues parfaitement synchronisés.",
-            descTitle: "Ce que fait l'outil",
-            descContent: "Fusionnez des paragraphes anglais et français tout en équilibrant le temps de parole. Le mode discours suit les paragraphes ; le mode présentation aligne les diapositives marquées par '#'.",
-            stepInputTitle: "Ajoutez vos textes",
-            formatTitle: "Conseils de formatage",
-            formatGeneral: "Séparez chaque paragraphe par une ligne vide pour faciliter l'alignement.",
-            formatSpeech: "Le mode discours attend le même nombre de paragraphes dans chaque langue.",
-            formatPresentation: "Utilisez '#' devant les titres de diapos (ex. \"# Diapo 1\") pour le mode présentation.",
-            englishLabel: "Anglais",
-            frenchLabel: "Français",
-            englishPlaceholder: "Collez le texte anglais ici...",
-            frenchPlaceholder: "Collez le texte français ici...",
-            blockTime: "Durée des blocs (s) :",
-            blockHint: "Durée cible avant de changer de langue",
-            generate: "Générer le texte bilingue",
-            reset: "Réinitialiser",
-            copy: "Copier",
-            download: "Télécharger .md",
-            validationMissing: "Veuillez saisir du texte dans les deux langues.",
-            validationParagraphs: (e, f) => `Nombre de paragraphes différent : Anglais (${e}), Français (${f}).`,
-            validationSlides: (e, f) => `Nombre de diapositives différent : Anglais (${e}), Français (${f}).`,
-            validationNoSlides: "Aucune diapositive trouvée (utilisez # pour les titres).",
-            validationNoEnSlides: "Aucune diapositive en anglais trouvée (utilisez # pour les titres).",
-            validationNoFrSlides: "Aucune diapositive en français trouvée (utilisez # pour les titres).",
-            statsEnglish: "Anglais",
-            statsFrench: "Français",
-            statsTotal: "Total",
-            words: "mots",
-            copySuccess: "Copié !",
-            exampleLoadedSpeech: "Exemple de discours chargé.",
-            exampleLoadedPresentation: "Exemple de présentation chargé.",
-            exampleLoadError: "Erreur lors du chargement des exemples.",
-            modeSummarySpeech: (sl, bt, bw, opt) => `Mode discours : départ ${sl}, blocs ~${bt}s.`,
-            modeSummaryPresentation: (sl, sm) => `Mode présentation : départ ${sl}, mode ${sm}.`,
-            loadSpeech: "Charger un exemple (discours)",
-            loadPresentation: "Charger un exemple (présentation)",
-            formatButton: "Mettre en forme le texte",
-            settings: "Paramètres",
-            stepSettingsTitle: "Réglages et génération",
-            stepOutputTitle: "Texte fusionné",
-            mode: "Mode :",
-            speech: "Discours",
-            presentation: "Présentation",
-            startingLanguage: "Langue de départ :",
-            english: "Anglais",
-            french: "Français",
-            slideMode: "Mode diapo :",
-            single: "Unique",
-            mixed: "Mixte",
-            mixedModePattern: "Motif mixte :",
-            alternating: "Alterné",
-            repeating: "Répété",
-            mixedModePatternTooltip: "Alterné : EN puis FR un slide sur deux. Répété : EN puis FR sur chaque diapo.",
-            durationOptimal: "Optimal",
-            durationManual: "Manuel",
-            durationTooltip: "Optimal calcule une durée conseillée à partir de vos textes.",
-            optimalBandsTooltip: "Affiche l'intervalle de changement recommandé.",
-            outputTitle: "Résultat fusionné",
-            modeTip: "Discours = texte continu. Présentation = diapositives.",
-            slideTip: "Ajoutez # au début des titres de diapos.",
-            expandEn: "Agrandir le texte anglais",
-            expandFr: "Agrandir le texte français",
-            formatTooltip: "Formater automatiquement le texte pour de meilleurs résultats.",
-            textFormatted: "Texte formaté !",
-            liveMode: "Mode direct"
+            appTitle: 'G\u00e9n\u00e9rateur de texte bilingue',
+            subtitle: 'Prononcez un discours ou faites une pr\u00e9sentation bilingue \u00e9quilibr\u00e9e, en alternant les versions compl\u00e8tes en anglais et en fran\u00e7ais fournies',
+            stepInputTitle: 'Saisir le texte',
+            stepSettingsTitle: 'Configurer et g\u00e9n\u00e9rer',
+            englishLabel: 'Version anglaise (discours ou notes d\'allocution)',
+            frenchLabel: 'Version fran\u00e7aise (discours ou notes d\'allocution)',
+            englishPlaceholder: 'Collez le texte anglais ici...',
+            frenchPlaceholder: 'Collez le texte fran\u00e7ais ici...',
+            formatTitle: 'Conseils de formatage',
+            formatGeneral: '<strong>G\u00e9n\u00e9ral :</strong> Assurez-vous que les deux versions ont le m\u00eame nombre de paragraphes.',
+            formatSpeech: '<strong>Discours :</strong> Gardez le m\u00eame ordre de paragraphes dans chaque langue.',
+            formatPresentation: '<strong>Pr\u00e9sentation :</strong> Commencez chaque diapo par \"#\" (ex. \"# Diapo 1\"). Alignez les paragraphes sous chaque diapo.',
+            loadSpeech: 'Exemple de discours',
+            loadPresentation: 'Exemple de pr\u00e9sentation',
+            reset: 'Effacer / R\u00e9initialiser',
+            settings: 'Param\u00e8tres',
+            mode: 'Mode',
+            speech: 'Discours',
+            presentation: 'Pr\u00e9sentation',
+            modeTip: 'Discours : blocs bas\u00e9s sur le temps.\nPr\u00e9sentation : sortie diapo par diapo.',
+            startingLanguage: 'Langue de d\u00e9part',
+            english: 'Anglais',
+            french: 'Fran\u00e7ais',
+            slideMode: 'Mode diapositives',
+            single: 'Unique',
+            mixed: 'Mixte',
+            mixedModePattern: 'Modèle de mode mixte',
+            mixedModePatternTooltip: 'Alterné : Diapo 1 (A-B), Diapo 2 (B-A).\nRépété : Diapo 1 (A-B), Diapo 2 (A-B).',
+            alternating: 'Alterné',
+            repeating: 'Répété',
+            slideTip: 'Unique : une langue par diapo.\nMixte : les deux langues sur chaque diapo.',
+            blockTime: 'Dur\u00e9e par langue',
+            blockHint: 'Temps avant de changer de langue.',
+            durationOptimal: 'Optimal',
+            durationManual: 'Manuel',
+            durationTooltip: 'Temps pendant lequel vous parlez dans une langue avant de changer. Choisissez Optimal pour un \u00e9quilibre automatique ou Manuel pour fixer vous-m\u00eame.',
+            optimalResult: (avgWords, minTime, maxTime, bestTime) => `Bas\u00e9 sur une longueur moyenne de ${avgWords} mots :\n- Dur\u00e9e conseill\u00e9e : ${minTime}-${maxTime}s\n- Optimal trouv\u00e9 : ${bestTime}s`,
+            optimalResultPlaceholder: '',
+            optimalLabel: 'Optimal',
+            bestLabel: 'Meilleur',
+            optimalBandsTooltip: `Blocs sugg\u00e9r\u00e9s :\nTemps de discours : 0-5 min | Bloc: 15-30s\nTemps de discours : 5-10 min | Bloc: 30-60s\nTemps de discours : 10-20 min | Block: 45-90s\nTemps de discours : 20+ min | Block: 60-120s`,
+            generate: 'G\u00e9n\u00e9rer le texte bilingue',
+            outputTitle: 'Texte bilingue',
+            copy: 'Copier',
+            download: 'T\u00e9l\u00e9charger .md',
+            statsEnglish: 'Anglais',
+            statsFrench: 'Fran\u00e7ais',
+            statsTotal: 'Total',
+            words: 'mots',
+            formatButton: 'Formater le texte',
+            formatTooltip: 'Optionnel : Tente de nettoyer et de bien formater votre texte brut.',
+            minAbbr: 'min',
+            secAbbr: 's',
+            validationMissing: 'Veuillez saisir du texte dans les deux langues.',
+            validationNoSlides: 'Aucune diapositive trouv\u00e9e. Commencez les lignes de diapositive par "#".',
+            validationNoEnSlides: 'Aucune diapositive trouv\u00e9e dans le texte anglais. Utilisez "#".',
+            validationNoFrSlides: 'Aucune diapositive trouv\u00e9e dans le texte fran\u00e7ais. Utilisez "#".',
+            validationSlides: (enCount, frCount) => `Nombre de diapositives diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). V\u00e9rifiez les titres \"#\".`,
+            validationParagraphs: (enCount, frCount) => `Nombre de paragraphes diff\u00e9rent : ${enCount} (EN) vs ${frCount} (FR). Veuillez les aligner.`,
+            modeSummarySpeech: (start, block, words, optimal) => `Discours | D\u00e9part : ${start} | Changement toutes les : ${block}s (~${words} mots)${optimal ? ` | Optimal : ${optimal}s` : ''}`,
+            modeSummaryPresentation: (start, slideMode) => `Pr\u00e9sentation | D\u00e9part : ${start} | Mode : ${slideMode}`,
+            exampleLoadedPresentation: 'Exemple de pr\u00e9sentation charg\u00e9.',
+            exampleLoadedSpeech: 'Exemple de discours charg\u00e9.',
+            exampleLoadError: 'Impossible de charger les exemples.',
+            copySuccess: 'Copi\u00e9 !',
+            expandEn: 'Agrandir le texte anglais',
+            expandFr: 'Agrandir le texte fran\u00e7ais',
+            textFormatted: 'Texte format\u00e9 !',
+            descTitle: 'Ce que fait cet outil',
+            descContent: 'Cet outil vous aide \u00e0 cr\u00e9er une version bilingue d\'un discours ou de notes d\'allocution. Il m\u00e9lange vos textes anglais et fran\u00e7ais en un seul script, chaque langue occupant environ la moiti\u00e9 du temps. L\'outil choisit les bons endroits pour changer de langue et d\u00e9finit la dur\u00e9e appropri\u00e9e pour rester dans une langue avant de changer.',
+            // Additions
+            liveMode: 'Mode direct',
+            themeToggleAriaLabel: 'Changer le thème',
+            langToggleAriaLabel: "Changer la langue de l'interface",
+            footerLicensePrefix: 'Le contenu de ce site est sous licence',
+            footerLicenseLink: 'CC BY-NC 4.0',
+            footerSourcePrefix: '; veuillez créditer la source pour toute utilisation non commerciale. Le code source est disponible sur',
+            footerSourceLink: 'GitHub',
+            footerRights: 'Aaron Percival. Tous droits réservés.',
+            practiceTitle: 'Mode Direct',
+            practiceDecreaseFont: 'Diminuer la taille de la police',
+            practiceIncreaseFont: 'Augmenter la taille de la police',
+            practiceClose: 'Fermer le mode direct',
+            practiceSpeed: 'Vitesse :',
+            practiceSpeedSlow: 'Lent',
+            practiceSpeedFast: 'Rapide',
+            practiceSpeedNormal: 'Rythme normal',
+            practiceLabelSlow: 'Lent (100)',
+            practiceLabelFast: 'Rapide (180+)',
+            practiceDescription: 'Rythme normal (130-160 MPM) : Courant pour la prise de parole en public. Équilibre l\'information et l\'engagement.',
+            practicePlay: 'Lire',
+            practicePause: 'Pause',
+            practiceReset: 'Réinitialiser',
+            practiceCurrent: 'Actuel',
+            practiceRemaining: 'Restant',
+            practiceTotal: 'Total',
+            endOfSession: 'Fin de la session'
         }
     };
     const setText = (id, text) => {
@@ -799,22 +868,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyTranslations = () => {
         const t = translations[currentLang];
         document.documentElement.lang = currentLang;
-        setText('app-title', t.title);
+        practiceMode.setTranslations(t); // Update practice mode translations
+        setText('app-title', t.appTitle);
         setText('app-subtitle', t.subtitle);
-        setText('desc-title', t.descTitle || t.formatTitle || t.formattingTipsTitle);
-        setHtml('desc-content', t.descContent || t.formattingTips || '');
+        setText('desc-title', t.descTitle);
+        setHtml('desc-content', t.descContent);
         setText('step-input-title', t.stepInputTitle);
         setText('format-title', t.formatTitle || t.formattingTipsTitle);
-        setText('format-general', t.formatGeneral || t.formattingTips);
-        setText('format-speech', t.formatSpeech || '');
-        setText('format-presentation', t.formatPresentation || '');
-        setText('label-english', t.englishLabel || t.english);
-        setText('label-french', t.frenchLabel || t.french);
+        setHtml('format-general', t.formatGeneral);
+        setHtml('format-speech', t.formatSpeech);
+        setHtml('format-presentation', t.formatPresentation);
+        setText('label-english', t.englishLabel);
+        setText('label-french', t.frenchLabel);
         setText('load-speech-example', t.loadSpeech);
         setText('load-presentation-example', t.loadPresentation);
         setText('reset-btn', t.reset);
         setText('format-text-label', t.formatButton);
-        setText('step-settings-title', t.stepSettingsTitle || t.settings);
+        setText('step-settings-title', t.stepSettingsTitle);
         setText('label-mode-text', t.mode);
         setText('label-mode-speech', t.speech);
         setText('label-mode-presentation', t.presentation);
@@ -836,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (durationTooltip) durationTooltip.setAttribute('data-tooltip', t.durationTooltip);
         if (optimalBandsTooltip) optimalBandsTooltip.setAttribute('data-tooltip', t.optimalBandsTooltip);
         setText('generate-btn', t.generate);
-        setText('step-output-main-title', t.stepOutputTitle || t.outputTitle);
+        setText('step-output-main-title', t.outputTitle);
         setText('output-title', t.outputTitle);
         setText('copy-btn', t.copy);
         setText('download-btn', t.download);
@@ -852,13 +922,66 @@ document.addEventListener('DOMContentLoaded', () => {
             if (expandButtons[0]) expandButtons[0].setAttribute('aria-label', t.expandEn);
             if (expandButtons[1]) expandButtons[1].setAttribute('aria-label', t.expandFr);
         }
-        if (langToggleBtn) langToggleBtn.textContent = currentLang === 'en' ? 'FR' : 'EN';
+        if (langToggleBtn) {
+            langToggleBtn.textContent = currentLang === 'en' ? 'FR' : 'EN';
+            langToggleBtn.setAttribute('aria-label', t.langToggleAriaLabel);
+        }
+        if (themeToggleBtn) {
+            themeToggleBtn.setAttribute('aria-label', t.themeToggleAriaLabel);
+        }
         if (formatTooltipIcon) formatTooltipIcon.setAttribute('data-tooltip', t.formatTooltip);
         if (practiceBtn) practiceBtn.textContent = t.liveMode;
+
+        // Footer & Practice IDs
+        setText('footer-license-text', t.footerLicensePrefix);
+        setText('footer-source-text', t.footerSourcePrefix);
+        setText('footer-rights', t.footerRights);
+        const footerLicLink = document.querySelector('footer a[href*="creativecommons"]');
+        if (footerLicLink) footerLicLink.textContent = t.footerLicenseLink;
+        const footerSrcLink = document.querySelector('footer a[href*="github"]');
+        if (footerSrcLink) footerSrcLink.textContent = t.footerSourceLink;
+
+        // Practice Mode
+        setText('practice-title', t.practiceTitle);
+        if (document.getElementById('font-decrease-btn')) document.getElementById('font-decrease-btn').setAttribute('aria-label', t.practiceDecreaseFont);
+        if (document.getElementById('font-increase-btn')) document.getElementById('font-increase-btn').setAttribute('aria-label', t.practiceIncreaseFont);
+        if (document.getElementById('close-practice-btn')) document.getElementById('close-practice-btn').setAttribute('aria-label', t.practiceClose);
+        setText('practice-speed-label', t.practiceSpeed);
+        setText('stat-marker-left', t.practiceLabelSlow);
+        setText('stat-marker-right', t.practiceLabelFast);
+        setText('wpm-description', t.practiceDescription);
+        setText('btn-play-label', t.practicePlay);
+        setText('btn-pause-label', t.practicePause);
+        setText('btn-reset-label', t.practiceReset);
+        setText('stat-current-label', t.practiceCurrent);
+        setText('stat-remaining-label', t.practiceRemaining);
+        setText('stat-total-label', t.practiceTotal);
+
+        setText('stat-remaining-label', t.practiceRemaining);
+        setText('stat-total-label', t.practiceTotal);
+        
         updateBlockTimeDisplay(blockTimeInput ? blockTimeInput.value : 45, t);
         renderOptimalResult();
         updateInputStats();
+
+        // Regenerate mode summary if we have previous generation params
+        if (lastGenParams) {
+             const { mode, baseOptions, blockTimeValue, optimalSeconds, slideMode } = lastGenParams;
+             if (mode === 'presentation') {
+                 // Translated values for slideMode ('single' or 'mixed')
+                 const smTranslated = t[slideMode] || slideMode; 
+                 updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), smTranslated));
+             } else {
+                 updateModeSummary(t.modeSummarySpeech(
+                     baseOptions.startLang.toUpperCase(),
+                     blockTimeValue,
+                     blockTimeWords(blockTimeValue),
+                     optimalSeconds
+                 ));
+             }
+        }
     };
+
     const formatTime = (seconds, t) => {
         // Simple MM:SS formatter
         if (!isFinite(seconds)) return '--:--';
@@ -1123,7 +1246,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             resultObj = merger.mergePresentation(enText, frText, { ...baseOptions, slideMode, mixedPattern });
-            updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), slideMode));
+            
+            // Save params for dynamic translation
+            lastGenParams = { mode: 'presentation', baseOptions, slideMode };
+            const smTranslated = t[slideMode] || slideMode;
+            updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), smTranslated));
         } else {
             const enParas = merger.parseParagraphs(enText);
             const frParas = merger.parseParagraphs(frText);
@@ -1143,6 +1270,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderOptimalResult();
             }
             resultObj = merger.merge(enText, frText, { ...baseOptions, blockTime: blockTimeValue });
+            
+            lastGenParams = { mode: 'speech', baseOptions, blockTimeValue, optimalSeconds };
             updateModeSummary(t.modeSummarySpeech(
                 baseOptions.startLang.toUpperCase(),
                 blockTimeValue,
