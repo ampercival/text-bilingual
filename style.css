@@ -1164,13 +1164,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 6rem;
+    /* Constant spacing */
 }
 
 /* Sentence-based styling */
 .practice-sentence {
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.4s ease;
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
+    transform: scale(0.95);
     filter: blur(2px);
     display: none;
     /* JS toggles visibility */
@@ -1183,39 +1185,35 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .practice-sentence.prev {
     display: block;
     opacity: 0.4;
-    transform: translateY(-40px) scale(0.9);
+    transform: scale(0.9);
     filter: blur(1px);
     font-size: 1.2rem;
     line-height: 1.4;
     color: var(--text-muted);
-    position: absolute;
-    top: 15%;
+    order: 0;
 }
 
 .practice-sentence.active {
     display: block;
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
     filter: blur(0);
     font-size: 4.5rem;
     font-weight: 600;
     line-height: 1.3;
     color: var(--text-main);
-    z-index: 2;
-    position: relative;
-    /* Keep centered in flow */
+    order: 1;
 }
 
 .practice-sentence.next {
     display: block;
     opacity: 0.4;
-    transform: translateY(40px) scale(0.9);
+    transform: scale(0.9);
     filter: blur(1px);
     font-size: 1.2rem;
     line-height: 1.4;
     color: var(--text-muted);
-    position: absolute;
-    bottom: 15%;
+    order: 2;
 }
 
 /* Word Highlighting */
