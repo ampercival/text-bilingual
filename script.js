@@ -321,9 +321,11 @@ class PracticeController {
         });
     }
     openFromMerged(mergedText) {
+        // Clean text: remove slide delimiters like *** or --
+        const cleanedText = mergedText.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
+
         // Split by sentence delimiters (. ! ?) but keep them attached
-        // This regex looks for punctuation followed by whitespace or end of string
-        const sentences = mergedText.replace(/([.!?])\s+/g, '$1|').split('|');
+        const sentences = cleanedText.replace(/([.!?])\s+/g, '$1|').split('|');
         
         this.content = sentences.map(text => {
             const trimmed = text.trim();
@@ -343,6 +345,51 @@ class PracticeController {
         this.reset();
         this.updateTotalDuration();
         this.applyFontSize();
+    }
+    
+    // ... close, reset, togglePlay, start, pause, stop, updatePlayButton, adjustSpeed, updateSpeedDisplay, changeFontSize, applyFontSize, runCountdown, prepareContent ...
+    
+    tick() {
+        if (!this.isPlaying) return;
+        if (this.currentIndex >= this.content.length) {
+            this.stop();
+            return;
+        }
+
+        // Calculate timing
+        const currentSentence = this.content[this.currentIndex];
+        const sentenceWords = currentSentence.words;
+        const totalSentenceWords = sentenceWords.length;
+
+        if (typeof this.currentSentenceWordIdx === 'undefined') {
+            this.currentSentenceWordIdx = 0;
+        }
+
+        this.updateThreeSentences();
+        this.updateRunningTimers();
+
+        // Check if we finished the sentence
+        if (this.currentSentenceWordIdx >= totalSentenceWords) {
+             // Calculate pause duration based on punctuation
+            let pause = 0;
+            const lastChar = currentSentence.text.slice(-1);
+            if ('.!?'.includes(lastChar)) pause = this.baseDelay * 2.0; // 2x word length pause
+            else if (',;:'.includes(lastChar)) pause = this.baseDelay * 1.0; 
+            
+            // Wait for the pause, then move to next sentence
+            this.timer = setTimeout(() => {
+                this.currentIndex++;
+                this.currentSentenceWordIdx = 0; // Reset for next sentence
+                this.tick();
+            }, pause);
+        } else {
+             // Move to next word
+            this.timer = setTimeout(() => {
+                this.currentSentenceWordIdx++;
+                this.currentWordGlobalIdx++;
+                this.tick();
+            }, this.baseDelay);
+        }
     }
     close() {
         this.stop();
