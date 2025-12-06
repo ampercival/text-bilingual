@@ -322,8 +322,18 @@ class PracticeController {
     }
     openFromMerged(mergedText) {
         // Clean text: remove slide delimiters like *** or --
-        const cleanedText = mergedText.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
+        let cleanedText = mergedText.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
 
+        // Attach quotes to words (remove spaces inside quotes)
+        // French guillemets: « word » -> «word»
+        cleanedText = cleanedText.replace(/«\s+/g, '«').replace(/\s+»/g, '»');
+        // English quotes: " word " -> "word" (simplified: remove space after opening " and before closing " if possible, 
+        // but " is ambiguous. Start with French as it's the main request causing "word" vs " " issues).
+        // For simple " matching, we can try to collapse " \w and \w " but " is context dependent.
+        // Robust generic approach: remove spaces around punctuation that should appear attached?
+        // User specifically asked for " and << or >>.
+        cleanedText = cleanedText.replace(/"\s+([^"]*?)\s+"/g, '"$1"'); // Try to clean paired quotes if possible, else rely on simple trim
+        
         // Split by sentence delimiters (. ! ?) but keep them attached
         const sentences = cleanedText.replace(/([.!?])\s+/g, '$1|').split('|');
         
@@ -403,6 +413,7 @@ class PracticeController {
         this.stop();
         this.currentIndex = 0;
         this.currentWordGlobalIdx = 0;
+        this.currentSentenceWordIdx = 0; // Initialize for immediate display
         this.isPaused = false;
         this.isPlaying = false;
         this.updatePlayButton();
@@ -480,18 +491,27 @@ class PracticeController {
         if (this.practiceContent) this.practiceContent.style.fontSize = `${this.fontSize}%`;
     }
     runCountdown() {
-        const target = this.currentText || this.practiceContent;
-        if (!target) return Promise.resolve();
+        // Ensure text is visible for preparation
+        this.updateThreeSentences();
+        
+        const overlay = document.getElementById('countdown-overlay');
+        const number = document.getElementById('countdown-number');
+        
+        if (!overlay || !number) return Promise.resolve();
+        
         return new Promise(resolve => {
+            overlay.style.display = 'flex';
             let count = 3;
-            target.textContent = count;
-            target.style.opacity = 1;
+            number.textContent = count;
+            // Indigo color is handled by CSS var(--primary-color) usually, ensuring styling matches
+            
             const int = setInterval(() => {
                 count--;
                 if (count > 0) {
-                    target.textContent = count;
+                    number.textContent = count;
                 } else {
                     clearInterval(int);
+                    overlay.style.display = 'none';
                     resolve();
                 }
             }, 1000);

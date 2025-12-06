@@ -1250,14 +1250,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(255, 255, 255, 0.85);
-    /* Slightly less opaque */
+    background: rgba(255, 255, 255, 0.2);
+    /* Very subtle overlay */
     z-index: 20;
-    backdrop-filter: blur(5px);
+    /* Removed blur to allow reading the text */
 }
 
 [data-theme="dark"] .countdown-overlay {
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(15, 23, 42, 0.4);
+    /* Slightly darker for dark mode contrast */
 }
 
 #countdown-number {
