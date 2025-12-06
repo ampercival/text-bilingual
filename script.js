@@ -380,16 +380,27 @@ class PracticeController {
 
         // Check if we finished the sentence
         if (this.currentSentenceWordIdx >= totalSentenceWords) {
-             // Calculate pause duration based on punctuation
+             // Calculate pause duration based on punctuation of the FINISHED sentence
             let pause = 0;
             const lastChar = currentSentence.text.slice(-1);
             if ('.!?'.includes(lastChar)) pause = this.baseDelay * 2.0; // 2x word length pause
             else if (',;:'.includes(lastChar)) pause = this.baseDelay * 1.0; 
             
-            // Wait for the pause, then move to next sentence
+            // Advance to next sentence IMMEDIATELY so user can see it during the pause
+            this.currentIndex++;
+            this.currentSentenceWordIdx = -1; // -1 indicates "before first word" state
+            
+            if (this.currentIndex >= this.content.length) {
+                this.stop(); // End of session
+                return;
+            }
+            
+            this.updateThreeSentences(); // Update view to show new sentence
+            this.updateRunningTimers();
+
+            // Wait for the pause, then start highlighting the new sentence
             this.timer = setTimeout(() => {
-                this.currentIndex++;
-                this.currentSentenceWordIdx = 0; // Reset for next sentence
+                this.currentSentenceWordIdx = 0; // Ready for first word
                 this.tick();
             }, pause);
         } else {
