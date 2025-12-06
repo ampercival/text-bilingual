@@ -546,51 +546,6 @@ class PracticeController {
         return combined;
     }
     
-    tick() {
-        if (!this.isPlaying) return;
-        if (this.currentIndex >= this.content.length) {
-            this.stop();
-            return;
-        }
-
-        // Calculate timing
-        const currentSentence = this.content[this.currentIndex];
-        const sentenceWords = currentSentence.words;
-        const totalSentenceWords = sentenceWords.length;
-
-        // Determine which word is currently active based on elapsed time for this sentence
-        // We need a local counter for the word index within the current sentence
-        if (typeof this.currentSentenceWordIdx === 'undefined') {
-            this.currentSentenceWordIdx = 0;
-        }
-
-        this.updateThreeSentences();
-        this.updateRunningTimers();
-
-        // Check if we finished the sentence
-        if (this.currentSentenceWordIdx >= totalSentenceWords) {
-             // Calculate pause duration based on punctuation
-            let pause = 0;
-            const lastChar = currentSentence.text.slice(-1);
-            if ('.!?'.includes(lastChar)) pause = this.baseDelay * 3.0; // 3x beat pause
-            else if (',;:'.includes(lastChar)) pause = this.baseDelay * 1.5; // 1.5x beat pause
-            
-            // Wait for the pause, then move to next sentence
-            this.timer = setTimeout(() => {
-                this.currentIndex++;
-                this.currentSentenceWordIdx = 0; // Reset for next sentence
-                this.tick();
-            }, pause);
-        } else {
-             // Move to next word
-            this.timer = setTimeout(() => {
-                this.currentSentenceWordIdx++;
-                this.currentWordGlobalIdx++;
-                this.tick();
-            }, this.baseDelay);
-        }
-    }
-
     updateThreeSentences() {
         const prev = this.content[this.currentIndex - 1];
         const curr = this.content[this.currentIndex];
