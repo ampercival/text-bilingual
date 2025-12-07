@@ -812,10 +812,17 @@ class PracticeController {
     }
     calculateTotalDuration() {
         if (!this.content.length) return 0;
-        const words = this.totalWords;
-        const sentences = this.content.length;
-        const pauseTime = sentences * (this.baseDelay * 4);
-        return (words * this.baseDelay) + pauseTime;
+        let totalMs = 0;
+        const wordMs = this.baseDelay;
+        for (const sent of this.content) {
+            // Words duration
+            totalMs += sent.words.length * wordMs;
+            // Punctuation pause duration
+            const lastChar = sent.text.slice(-1);
+            if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
+            else if (',;:'.includes(lastChar)) totalMs += wordMs * 1.0;
+        }
+        return totalMs;
     }
     updateTotalDuration() {
         const ms = this.calculateTotalDuration();
