@@ -48,6 +48,10 @@ class BilingualMerger {
                  if (',;:'.includes(word.slice(-1))) {
                      totalUnits += 1;
                  }
+                 // Slide header pause (treat # as hard punctuation/double pause)
+                 if (word === '#') {
+                     totalUnits += 2;
+                 }
              }
              
              // End-sentence pause (2 units)
@@ -336,14 +340,7 @@ class BilingualMerger {
                 slidesOut.push({ text: `${title}\n${chosenSlide.body}`.trim() });
                 if (chosenLang === 'en') {
                      enWordsUsed += chosenSlide.words;
-                     enDur += this.estimateDuration(chosenSlide.body); // Estimate body only? Title? using text
-                     // Actually slidesOut[].text has title + body.
-                     // But chosenSlide has text?? No, parseSlides returns paragraphs.
-                     // The slidesOut.push uses `${title}\n${chosenSlide.body}`.
-                     // We should use that full text for accurate timing.
-                     // But wait, estimateDuration(string) counts punctuation.
-                     // The duration is for SPEAKING time. Title might be spoken or not.
-                     // Assuming title is spoken.
+                     // Only calculate duration ONCE using the full text (Title + Body)
                      enDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
                 } else {
                      frWordsUsed += chosenSlide.words;
@@ -451,6 +448,15 @@ class BilingualMerger {
                 slidesOut.push({ text: parts.join('\n\n').trim(), endLang });
                 enWords += slideEn;
                 frWords += slideFr;
+                
+                // Add title duration to the starting language of the slide
+                // (Since we prepend the title, it effectively belongs to the slide context)
+                if (startLang === 'en') {
+                    enDur += this.estimateDuration(title);
+                } else {
+                    frDur += this.estimateDuration(title);
+                }
+
                 lastEndLang = endLang;
             }
 
@@ -665,8 +671,13 @@ class PracticeController {
             // When we move to next, we are finishing the current word.
             let delay = this.baseDelay;
             const currentWord = sentenceWords[this.currentSentenceWordIdx];
-            if (currentWord && ',;:'.includes(currentWord.slice(-1))) {
-                delay += this.baseDelay; // Add 1x pause
+            if (currentWord) {
+                if (',;:'.includes(currentWord.slice(-1))) {
+                    delay += this.baseDelay; // Add 1x pause
+                }
+                if (currentWord === '#') {
+                    delay += this.baseDelay * 2.0; // Add 2x pause
+                }
             }
 
             this.timer = setTimeout(() => {
@@ -864,6 +875,9 @@ class PracticeController {
             for (const word of sent.words) {
                  if (',;:'.includes(word.slice(-1))) {
                      totalMs += wordMs;
+                 }
+                 if (word === '#') {
+                     totalMs += wordMs * 2.0;
                  }
             }
             
