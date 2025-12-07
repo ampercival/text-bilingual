@@ -781,6 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
     const manualControls = document.getElementById('manual-controls');
     const optimalControls = document.getElementById('optimal-controls');
+    const optimalResultEl = document.getElementById('optimal-result');
     const durationRadios = document.querySelectorAll('input[name="duration-mode"]');
     const slideRadios = document.querySelectorAll('input[name="slide-mode"]');
     const statsDiv = document.getElementById('result-stats');
@@ -1142,11 +1143,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     const blockTimeWords = (seconds) => Math.round((seconds / 60) * 150);
-    const calculateOptimal = (startLang) => {
-        return { bestTime: 45, bands: [] }; // Stub
+    const calculateOptimal = (startLangFallback = 'en') => {
+        const enWords = merger.countWords(enInput.value);
+        const frWords = merger.countWords(frInput.value);
+        if (enWords === 0 || frWords === 0) return null;
+        const enSec = merger.estimateDuration(enWords);
+        const frSec = merger.estimateDuration(frWords);
+        const avgMinutes = ((enSec + frSec) / 2) / 60;
+        const avgWords = Math.round((enWords + frWords) / 2);
+
+        let minTime = 15;
+        let maxTime = 30;
+        if (avgMinutes > 20) {
+            minTime = 60;
+            maxTime = 120;
+        } else if (avgMinutes > 10) {
+            minTime = 45;
+            maxTime = 90;
+        } else if (avgMinutes > 5) {
+            minTime = 30;
+            maxTime = 60;
+        }
+
+        const targetMid = Math.round((minTime + maxTime) / 2);
+        let bestTime = targetMid;
+        const enParas = merger.parseParagraphs(enInput.value);
+        const frParas = merger.parseParagraphs(frInput.value);
+        const startLang = document.querySelector('input[name="start-lang"]:checked')?.value || startLangFallback;
+
+        if (enParas.length === frParas.length && enParas.length > 0) {
+            let bestGap = Number.POSITIVE_INFINITY;
+            for (let t = minTime; t <= maxTime; t += 5) {
+                const res = merger.merge(enInput.value, frInput.value, { startLang, blockTime: t });
+                const gap = Math.abs(res.enWords - res.frWords);
+                if (gap < bestGap || (gap === bestGap && Math.abs(t - targetMid) < Math.abs(bestTime - targetMid))) {
+                    bestGap = gap;
+                    bestTime = t;
+                }
+            }
+        }
+
+        return { avgWords, minTime, maxTime, bestTime };
     };
+
     const renderOptimalResult = () => {
-        // Placeholder
+        if (!optimalResultEl) return;
+        const t = translations[currentLang];
+        if (lastOptimal) {
+            const { avgWords, minTime, maxTime, bestTime } = lastOptimal;
+            optimalResultEl.textContent = t.optimalResult(avgWords, minTime, maxTime, bestTime);
+            optimalResultEl.style.display = 'block';
+        } else {
+            optimalResultEl.textContent = '';
+            optimalResultEl.style.display = 'none';
+        }
     };
     const syncDurationModeVisibility = () => {
         const mode = document.querySelector('input[name="mode"]:checked').value;
@@ -1185,7 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const radio = document.querySelector(`input[name="mode"][value="${mode}"]`);
         if (radio) {
             radio.checked = true;
-            syncDurationModeVisibility();
+            radio.dispatchEvent(new Event('change'));
         }
     };
     const updateBlockTimeDisplay = (seconds, t) => {
