@@ -10,9 +10,25 @@ class BilingualMerger {
         return trimmed.split(/\s+/).filter(word => word.length > 0).length;
     }
 
-    // Estimate speaking duration in seconds for a given word count
-    estimateDuration(wordCount) {
-        return (wordCount / this.wpm) * 60; // seconds
+    // Estimate speaking duration in seconds for a given word count OR text content
+    estimateDuration(input) {
+        if (typeof input === 'number') {
+            return (input / this.wpm) * 60; // seconds from simple word count
+        }
+
+        const text = input || '';
+        const words = this.countWords(text);
+        const baseTime = (words / this.wpm) * 60;
+
+        // Calculate pauses based on punctuation
+        // . ! ? = 2x word duration (approx 0.8s)
+        // , ; : = 1x word duration (approx 0.4s)
+        const wordDuration = 60 / this.wpm;
+        const heavyPunctuation = (text.match(/[.!?]/g) || []).length;
+        const lightPunctuation = (text.match(/[,;:]/g) || []).length;
+
+        const pauseTime = (heavyPunctuation * wordDuration * 2) + (lightPunctuation * wordDuration);
+        return baseTime + pauseTime;
     }
 
     // Split text into paragraphs (normalize line endings; break on blank lines)
@@ -79,6 +95,8 @@ class BilingualMerger {
 
         let enWordsUsed = 0;
         let frWordsUsed = 0;
+        let enDur = 0;
+        let frDur = 0;
         let deltaSec = 0; // positive => English ahead in speaking time
         let streakLang = null;
         let streakDuration = 0;
@@ -88,8 +106,8 @@ class BilingualMerger {
 
         const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
         const totalParas = enParagraphs.length + frParagraphs.length;
-        const totalParaSec = enParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.words), 0)
-            + frParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.words), 0);
+        const totalParaSec = enParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.text), 0)
+            + frParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.text), 0);
         const avgParaSec = totalParas > 0 ? totalParaSec / totalParas : 5;
         const maxAllowedStreak = Math.max(1, Math.floor(totalPairs / 2) || 1);
         const targetStreakCount = clamp(
@@ -109,18 +127,22 @@ class BilingualMerger {
                     const chosenPara = enPara;
                     outputParas.push(chosenPara.text);
                     enWordsUsed += chosenPara.words;
-                    deltaSec += this.estimateDuration(chosenPara.words);
+                    const dur = this.estimateDuration(chosenPara.text);
+                    enDur += dur;
+                    deltaSec += dur;
                     streakLang = 'en';
-                    streakDuration = this.estimateDuration(chosenPara.words);
+                    streakDuration = dur;
                     streakCount = 1;
                     continue;
                 } else if (options.startLang === 'fr' && frPara.words > 0) {
                     const chosenPara = frPara;
                     outputParas.push(chosenPara.text);
                     frWordsUsed += chosenPara.words;
-                    deltaSec -= this.estimateDuration(chosenPara.words);
+                    const dur = this.estimateDuration(chosenPara.text);
+                    frDur += dur;
+                    deltaSec -= dur;
                     streakLang = 'fr';
-                    streakDuration = this.estimateDuration(chosenPara.words);
+                    streakDuration = dur;
                     streakCount = 1;
                     continue;
                 }
@@ -128,8 +150,8 @@ class BilingualMerger {
 
             const mustSwitch = streakLang && streakCount >= targetStreakCount;
 
-            const enParaDur = this.estimateDuration(enPara.words);
-            const frParaDur = this.estimateDuration(frPara.words);
+            const enParaDur = this.estimateDuration(enPara.text);
+            const frParaDur = this.estimateDuration(frPara.text);
 
             const enProjectedStreak = streakLang === 'en' ? streakDuration + enParaDur : enParaDur;
             const frProjectedStreak = streakLang === 'fr' ? streakDuration + frParaDur : frParaDur;
@@ -174,18 +196,20 @@ class BilingualMerger {
 
             if (chosenLang === 'en') {
                 enWordsUsed += chosenPara.words;
-                deltaSec += this.estimateDuration(chosenPara.words);
+                enDur += this.estimateDuration(chosenPara.text);
+                deltaSec += this.estimateDuration(chosenPara.text);
             } else {
                 frWordsUsed += chosenPara.words;
-                deltaSec -= this.estimateDuration(chosenPara.words);
+                frDur += this.estimateDuration(chosenPara.text);
+                deltaSec -= this.estimateDuration(chosenPara.text);
             }
 
             if (streakLang === chosenLang) {
-                streakDuration += this.estimateDuration(chosenPara.words);
+                streakDuration += this.estimateDuration(chosenPara.text);
                 streakCount += 1;
             } else {
                 streakLang = chosenLang;
-                streakDuration = this.estimateDuration(chosenPara.words);
+                streakDuration = this.estimateDuration(chosenPara.text);
                 streakCount = 1;
             }
         }
@@ -207,6 +231,20 @@ class BilingualMerger {
                 }
                 const swapDelta = Math.abs(swapEn - swapFr);
                 if (swapDelta < currentDelta) {
+                    // Note: Swapping logic tracks words but updating duration is complex here.
+                    // Given this is edge case optimization, traversing again or simplifying is acceptable.
+                    // We will re-calculate duration at the end if strict accuracy needed, or just update roughly.
+                    // Let's rely on re-summing or just accepting slight inaccuracy for this edge case swap.
+                    // Actually, let's just update enWordsUsed/frWordsUsed as it does.
+                    // Duration stats might be slightly off if we don't fix it.
+                    // Let's fix it properly.
+                    if (lastChoice.lang === 'en') {
+                         enDur -= this.estimateDuration(lastChoice.text || ''); // rough check
+                         frDur += this.estimateDuration(lastChoice.altText || '');
+                    } else {
+                         frDur -= this.estimateDuration(lastChoice.text || '');
+                         enDur += this.estimateDuration(lastChoice.altText || '');
+                    }
                     outputParas[lastIdx] = lastChoice.altText;
                     enWordsUsed = swapEn;
                     frWordsUsed = swapFr;
@@ -217,7 +255,9 @@ class BilingualMerger {
         return {
             text: outputParas.join('\n\n***\n\n'),
             enWords: enWordsUsed,
-            frWords: frWordsUsed
+            frWords: frWordsUsed,
+            enDur,
+            frDur
         };
     }
 
@@ -233,6 +273,8 @@ class BilingualMerger {
         if (options.slideMode === 'single') {
             let enWordsUsed = 0;
             let frWordsUsed = 0;
+            let enDur = 0;
+            let frDur = 0;
             const slidesOut = [];
             for (let i = 0; i < totalSlides; i++) {
                 const enSlide = enSlides[i] || { title: `# Slide ${i + 1}`, body: '', paragraphs: [], words: 0 };
@@ -262,13 +304,29 @@ class BilingualMerger {
                 }
 
                 slidesOut.push({ text: `${title}\n${chosenSlide.body}`.trim() });
-                if (chosenLang === 'en') enWordsUsed += chosenSlide.words; else frWordsUsed += chosenSlide.words;
+                if (chosenLang === 'en') {
+                     enWordsUsed += chosenSlide.words;
+                     enDur += this.estimateDuration(chosenSlide.body); // Estimate body only? Title? using text
+                     // Actually slidesOut[].text has title + body.
+                     // But chosenSlide has text?? No, parseSlides returns paragraphs.
+                     // The slidesOut.push uses `${title}\n${chosenSlide.body}`.
+                     // We should use that full text for accurate timing.
+                     // But wait, estimateDuration(string) counts punctuation.
+                     // The duration is for SPEAKING time. Title might be spoken or not.
+                     // Assuming title is spoken.
+                     enDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
+                } else {
+                     frWordsUsed += chosenSlide.words;
+                     frDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
+                }
             }
 
             return {
                 text: slidesOut.map(s => s.text).join('\n\n---\n\n'),
                 enWords: enWordsUsed,
-                frWords: frWordsUsed
+                frWords: frWordsUsed,
+                enDur,
+                frDur
             };
         }
 
@@ -296,6 +354,8 @@ class BilingualMerger {
             const slidesOut = [];
             let enWords = 0;
             let frWords = 0;
+            let enDur = 0;
+            let frDur = 0;
             let lastEndLang = options.startLang;
 
             for (const meta of slidesMeta) {
@@ -323,7 +383,13 @@ class BilingualMerger {
                     if (!chosen.text) continue;
                     const chosenLang = primary.text ? plannedLang : other(plannedLang);
                     paraOrder.push({ text: chosen.text, lang: chosenLang, words: chosen.words });
-                    if (chosenLang === 'en') slideEn += chosen.words; else slideFr += chosen.words;
+                    if (chosenLang === 'en') {
+                         slideEn += chosen.words;
+                         enDur += this.estimateDuration(chosen.text);
+                    } else {
+                         slideFr += chosen.words;
+                         frDur += this.estimateDuration(chosen.text);
+                    }
                 }
 
                 // Enforce bilingual content per slide by appending the missing language when possible.
@@ -335,7 +401,13 @@ class BilingualMerger {
                         : (meta.frParas[meta.totalParas - 1] || { text: '', words: 0 });
                     if (missingPara.text) {
                         paraOrder.push({ text: missingPara.text, lang: missingLang, words: missingPara.words });
-                        if (missingLang === 'en') slideEn += missingPara.words; else slideFr += missingPara.words;
+                        if (missingLang === 'en') {
+                             slideEn += missingPara.words;
+                             enDur += this.estimateDuration(missingPara.text);
+                        } else {
+                             slideFr += missingPara.words;
+                             frDur += this.estimateDuration(missingPara.text);
+                        }
                     }
                 }
 
@@ -352,14 +424,14 @@ class BilingualMerger {
                 lastEndLang = endLang;
             }
 
-            return { slidesOut, enWords, frWords };
+            return { slidesOut, enWords, frWords, enDur, frDur };
         };
 
         let cuts = Array(totalSlides).fill(undefined);
         slidesMeta.forEach(meta => cuts[meta.index] = meta.defaultCut);
 
         let plan = buildPlan(cuts);
-        let bestDelta = Math.abs(this.estimateDuration(plan.enWords) - this.estimateDuration(plan.frWords));
+        let bestDelta = Math.abs(plan.enDur - plan.frDur);
         const maxIterations = Math.max(1, slidesMeta.length * 4);
 
         for (let iter = 0; iter < maxIterations; iter++) {
@@ -376,7 +448,7 @@ class BilingualMerger {
                     const testCuts = [...cuts];
                     testCuts[meta.index] = newCut;
                     const testPlan = buildPlan(testCuts);
-                    const testDelta = Math.abs(this.estimateDuration(testPlan.enWords) - this.estimateDuration(testPlan.frWords));
+                    const testDelta = Math.abs(testPlan.enDur - testPlan.frDur);
                     if (!candidate || testDelta < candidate.delta) {
                         candidate = { cuts: testCuts, plan: testPlan, delta: testDelta };
                     }
@@ -395,7 +467,9 @@ class BilingualMerger {
         return {
             text: plan.slidesOut.map(s => s.text).join('\n\n---\n\n'),
             enWords: plan.enWords,
-            frWords: plan.frWords
+            frWords: plan.frWords,
+            enDur: plan.enDur,
+            frDur: plan.frDur
         };
     }
 }
@@ -1147,8 +1221,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const enWords = merger.countWords(enInput.value);
         const frWords = merger.countWords(frInput.value);
         if (enWords === 0 || frWords === 0) return null;
-        const enSec = merger.estimateDuration(enWords);
-        const frSec = merger.estimateDuration(frWords);
+        const enSec = merger.estimateDuration(enInput.value);
+        const frSec = merger.estimateDuration(frInput.value);
         const avgMinutes = ((enSec + frSec) / 2) / 60;
         const avgWords = Math.round((enWords + frWords) / 2);
 
@@ -1312,8 +1386,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const t = translations[currentLang];
         const enWords = merger.countWords(enInput.value);
         const frWords = merger.countWords(frInput.value);
-        const enDurSec = merger.estimateDuration(enWords);
-        const frDurSec = merger.estimateDuration(frWords);
+        const enDurSec = merger.estimateDuration(enInput.value);
+        const frDurSec = merger.estimateDuration(frInput.value);
         enCountDisplay.textContent = `${enWords} ${t.words} (~${formatTime(enDurSec, t)})`;
         frCountDisplay.textContent = `${frWords} ${t.words} (~${formatTime(frDurSec, t)})`;
         updateOptimalFromInputs();
@@ -1494,8 +1568,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ));
         }
         // Compute durations based on actually used words
-        const enSec = merger.estimateDuration(resultObj.enWords);
-        const frSec = merger.estimateDuration(resultObj.frWords);
+        // Compute durations based on actually used words
+        const enSec = resultObj.enDur || merger.estimateDuration(resultObj.enWords); // Fallback if enDur not present (safeguard)
+        const frSec = resultObj.frDur || merger.estimateDuration(resultObj.frWords);
         const totalSec = enSec + frSec;
         if (statsDiv) {
             statsDiv.innerHTML = `
