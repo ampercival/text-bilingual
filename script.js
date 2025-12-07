@@ -7,7 +7,11 @@ class BilingualMerger {
     countWords(text) {
         const trimmed = text.trim();
         if (!trimmed) return 0;
-        return trimmed.split(/\s+/).filter(word => word.length > 0).length;
+        // Treat "«...»" (with spaces) as a single token for word counting purposes.
+        // Regex: match strict French quote pattern OR standard non-whitespace sequence.
+        // Note: [^»] means any char except closing quote.
+        const tokens = trimmed.match(/«[^»]+»|\S+/g) || [];
+        return tokens.length;
     }
 
     // Estimate speaking duration in seconds for a given word count OR text content
@@ -548,7 +552,9 @@ class PracticeController {
 
         // Attach quotes to words (remove spaces inside quotes)
         // French guillemets: « word » -> «word»
-        cleanedText = cleanedText.replace(/«\s+/g, '«').replace(/\s+»/g, '»');
+        // Update: User requested keeping spaces but treating as one word.
+        // So we do NOT remove spaces.
+        // cleanedText = cleanedText.replace(/«\s+/g, '«').replace(/\s+»/g, '»');
         // English quotes: " word " -> "word" (simplified: remove space after opening " and before closing " if possible, 
         // but " is ambiguous. Start with French as it's the main request causing "word" vs " " issues).
         // For simple " matching, we can try to collapse " \w and \w " but " is context dependent.
@@ -565,7 +571,8 @@ class PracticeController {
             return {
                 text: trimmed,
                 lang: 'mix', // Language detection logic could go here
-                words: trimmed.split(/\s+/)
+                // Use the same regex as countWords to group French quotes
+                words: trimmed.match(/«[^»]+»|\S+/g) || []
             };
         }).filter(Boolean);
 
