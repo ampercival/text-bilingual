@@ -17,22 +17,48 @@ class BilingualMerger {
     // Estimate speaking duration in seconds for a given word count OR text content
     estimateDuration(input) {
         if (typeof input === 'number') {
-            return (input / this.wpm) * 60; // seconds from simple word count
+            return (input / this.wpm) * 60;
         }
 
-        const text = input || '';
-        const words = this.countWords(text);
-        const baseTime = (words / this.wpm) * 60;
+        let text = input || '';
+        // 1. Clean separators exactly like PracticeController
+        text = text.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' '); 
 
-        // Calculate pauses based on punctuation
-        // . ! ? = 2x word duration (approx 0.8s)
-        // , ; : = 1x word duration (approx 0.4s)
-        const wordDuration = 60 / this.wpm;
-        const heavyPunctuation = (text.match(/[.!?]/g) || []).length;
-        const lightPunctuation = (text.match(/[,;:]/g) || []).length;
+        // 2. Handle English quotes (simple clean) - matching PracticeController
+        text = text.replace(/"\s+([^"]*?)\s+"/g, '"$1"');
 
-        const pauseTime = (heavyPunctuation * wordDuration * 2) + (lightPunctuation * wordDuration);
-        return baseTime + pauseTime;
+        // 3. Split sentences - matching PracticeController
+        // Note: This regex consumes the space after punctuation, splitting there.
+        const sentences = text.replace(/([.!?])\s+/g, '$1|').split('|');
+
+        let totalUnits = 0;
+
+        for (const sentText of sentences) {
+             const trimmed = sentText.trim();
+             if (!trimmed) continue;
+             
+             // 4. Parse words (using the quote-aware regex matching PracticeController/countWords)
+             const words = trimmed.match(/«[^»]+»|\S+/g) || [];
+             
+             // Base units for words
+             totalUnits += words.length;
+             
+             // Mid-sentence pauses (1 unit)
+             for (const word of words) {
+                 if (',;:'.includes(word.slice(-1))) {
+                     totalUnits += 1;
+                 }
+             }
+             
+             // End-sentence pause (2 units)
+             // Check the last character of the full sentence text
+             const lastChar = trimmed.slice(-1);
+             if ('.!?'.includes(lastChar)) {
+                 totalUnits += 2;
+             }
+        }
+        
+        return (totalUnits / this.wpm) * 60;
     }
 
     // Split text into paragraphs (normalize line endings; break on blank lines)
@@ -634,11 +660,20 @@ class PracticeController {
             }, pause);
         } else {
             // Move to next word
+            // Check if current word (the one we just displayed/processed) ends in mid-sentence punctuation
+            // Note: currentSentenceWordIdx points to the word we are currently on.
+            // When we move to next, we are finishing the current word.
+            let delay = this.baseDelay;
+            const currentWord = sentenceWords[this.currentSentenceWordIdx];
+            if (currentWord && ',;:'.includes(currentWord.slice(-1))) {
+                delay += this.baseDelay; // Add 1x pause
+            }
+
             this.timer = setTimeout(() => {
                 this.currentSentenceWordIdx++;
                 this.currentWordGlobalIdx++;
                 this.tick();
-            }, this.baseDelay);
+            }, delay);
         }
     }
     close() {
@@ -824,10 +859,17 @@ class PracticeController {
         for (const sent of this.content) {
             // Words duration
             totalMs += sent.words.length * wordMs;
-            // Punctuation pause duration
+            
+            // Mid-sentence pauses (1x)
+            for (const word of sent.words) {
+                 if (',;:'.includes(word.slice(-1))) {
+                     totalMs += wordMs;
+                 }
+            }
+            
+            // Punctuation pause duration (2x)
             const lastChar = sent.text.slice(-1);
             if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
-            else if (',;:'.includes(lastChar)) totalMs += wordMs * 1.0;
         }
         return totalMs;
     }
@@ -1216,19 +1258,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const formatTime = (seconds, t) => {
-        // Round to nearest 5s, format as "X min Y sec"
+        // Match Live Mode precision (approx 1s)
         if (!isFinite(seconds)) return '--:--';
-        const rounded = Math.round(seconds / 5) * 5;
+        const rounded = Math.ceil(seconds);
+        if (rounded < 60) return `${rounded} ${t.sec || 'sec'}`;
         const mins = Math.floor(rounded / 60);
         const secs = rounded % 60;
-
-        if (mins > 0) {
-            // e.g. "2 min 0 sec" or "2 min 15 sec"
-            return `${mins} min ${secs} sec`;
-        } else {
-            // e.g. "45 sec"
-            return `${secs} sec`;
-        }
+        return `${mins} ${t.min || 'min'} ${secs} ${t.sec || 'sec'}`;
     };
     const blockTimeWords = (seconds) => Math.round((seconds / 60) * 150);
     const calculateOptimal = (startLangFallback = 'en') => {
