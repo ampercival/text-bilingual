@@ -292,7 +292,7 @@ class PracticeController {
         this.launchTime = 0;
         this.elapsedPaused = 0;
         this.lastPauseStart = 0;
-        this.fontSize = 150;
+        this.fontSize = 300;
         this.t = {}; // Translations
         this.bindEvents();
     }
@@ -498,13 +498,14 @@ class PracticeController {
         }
     }
     changeFontSize(delta) {
-        this.fontSize = Math.max(50, Math.min(200, this.fontSize + delta));
+        this.fontSize = Math.max(100, Math.min(500, this.fontSize + delta));
         this.applyFontSize();
     }
     applyFontSize() {
-        if (this.prevText) this.prevText.style.fontSize = `${this.fontSize}%`;
+        const secondarySize = Math.max(60, Math.round(this.fontSize * 0.67));
+        if (this.prevText) this.prevText.style.fontSize = `${secondarySize}%`;
         if (this.currentText) this.currentText.style.fontSize = `${this.fontSize}%`;
-        if (this.nextText) this.nextText.style.fontSize = `${this.fontSize}%`;
+        if (this.nextText) this.nextText.style.fontSize = `${secondarySize}%`;
         if (this.practiceContent) this.practiceContent.style.fontSize = `${this.fontSize}%`;
     }
     runCountdown() {
@@ -959,26 +960,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setText('stat-remaining-label', t.practiceRemaining);
         setText('stat-total-label', t.practiceTotal);
-        
+
         updateBlockTimeDisplay(blockTimeInput ? blockTimeInput.value : 45, t);
         renderOptimalResult();
         updateInputStats();
 
         // Regenerate mode summary if we have previous generation params
         if (lastGenParams) {
-             const { mode, baseOptions, blockTimeValue, optimalSeconds, slideMode } = lastGenParams;
-             if (mode === 'presentation') {
-                 // Translated values for slideMode ('single' or 'mixed')
-                 const smTranslated = t[slideMode] || slideMode; 
-                 updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), smTranslated));
-             } else {
-                 updateModeSummary(t.modeSummarySpeech(
-                     baseOptions.startLang.toUpperCase(),
-                     blockTimeValue,
-                     blockTimeWords(blockTimeValue),
-                     optimalSeconds
-                 ));
-             }
+            const { mode, baseOptions, blockTimeValue, optimalSeconds, slideMode } = lastGenParams;
+            if (mode === 'presentation') {
+                // Translated values for slideMode ('single' or 'mixed')
+                const smTranslated = t[slideMode] || slideMode;
+                updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), smTranslated));
+            } else {
+                updateModeSummary(t.modeSummarySpeech(
+                    baseOptions.startLang.toUpperCase(),
+                    blockTimeValue,
+                    blockTimeWords(blockTimeValue),
+                    optimalSeconds
+                ));
+            }
         }
     };
 
@@ -1246,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             resultObj = merger.mergePresentation(enText, frText, { ...baseOptions, slideMode, mixedPattern });
-            
+
             // Save params for dynamic translation
             lastGenParams = { mode: 'presentation', baseOptions, slideMode };
             const smTranslated = t[slideMode] || slideMode;
@@ -1270,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderOptimalResult();
             }
             resultObj = merger.merge(enText, frText, { ...baseOptions, blockTime: blockTimeValue });
-            
+
             lastGenParams = { mode: 'speech', baseOptions, blockTimeValue, optimalSeconds };
             updateModeSummary(t.modeSummarySpeech(
                 baseOptions.startLang.toUpperCase(),
