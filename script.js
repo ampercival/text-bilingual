@@ -266,7 +266,7 @@ class BilingualMerger {
             }
 
             return {
-                text: slidesOut.map(s => s.text).join('\n\n***\n\n'),
+                text: slidesOut.map(s => s.text).join('\n\n---\n\n'),
                 enWords: enWordsUsed,
                 frWords: frWordsUsed
             };
@@ -393,7 +393,7 @@ class BilingualMerger {
         }
 
         return {
-            text: plan.slidesOut.map(s => s.text).join('\n\n***\n\n'),
+            text: plan.slidesOut.map(s => s.text).join('\n\n---\n\n'),
             enWords: plan.enWords,
             frWords: plan.frWords
         };
@@ -1127,11 +1127,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const formatTime = (seconds, t) => {
-        // Simple MM:SS formatter
+        // Round to nearest 5s, format as "X min Y sec"
         if (!isFinite(seconds)) return '--:--';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        const rounded = Math.round(seconds / 5) * 5;
+        const mins = Math.floor(rounded / 60);
+        const secs = rounded % 60;
+
+        if (mins > 0) {
+            // e.g. "2 min 0 sec" or "2 min 15 sec"
+            return `${mins} min ${secs} sec`;
+        } else {
+            // e.g. "45 sec"
+            return `${secs} sec`;
+        }
     };
     const blockTimeWords = (seconds) => Math.round((seconds / 60) * 150);
     const calculateOptimal = (startLang) => {
@@ -1174,9 +1182,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.textContent = msg;
     };
     const setMode = (mode) => {
-        // Stub to prevent crash
         const radio = document.querySelector(`input[name="mode"][value="${mode}"]`);
-        if (radio) radio.checked = true;
+        if (radio) {
+            radio.checked = true;
+            syncDurationModeVisibility();
+        }
     };
     const updateBlockTimeDisplay = (seconds, t) => {
         if (blockTimeDisplay) {
