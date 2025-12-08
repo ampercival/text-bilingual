@@ -7,12 +7,62 @@ class BilingualMerger {
     countWords(text) {
         const trimmed = text.trim();
         if (!trimmed) return 0;
-        return trimmed.split(/\s+/).filter(word => word.length > 0).length;
+        // Treat "«...»" (with spaces) as a single token for word counting purposes.
+        // Regex: match strict French quote pattern OR standard non-whitespace sequence.
+        // Note: [^»] means any char except closing quote.
+        const tokens = trimmed.match(/«[^»]+»|\S+/g) || [];
+        return tokens.length;
     }
 
-    // Estimate speaking duration in seconds for a given word count
-    estimateDuration(wordCount) {
-        return (wordCount / this.wpm) * 60; // seconds
+    // Estimate speaking duration in seconds for a given word count OR text content
+    estimateDuration(input) {
+        if (typeof input === 'number') {
+            return (input / this.wpm) * 60;
+        }
+
+        let text = input || '';
+        // 1. Clean separators exactly like PracticeController
+        text = text.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' '); 
+
+        // 2. Handle English quotes (simple clean) - matching PracticeController
+        text = text.replace(/"\s+([^"]*?)\s+"/g, '"$1"');
+
+        // 3. Split sentences - matching PracticeController
+        // Note: This regex consumes the space after punctuation, splitting there.
+        const sentences = text.replace(/([.!?])\s+/g, '$1|').split('|');
+
+        let totalUnits = 0;
+
+        for (const sentText of sentences) {
+             const trimmed = sentText.trim();
+             if (!trimmed) continue;
+             
+             // 4. Parse words (using the quote-aware regex matching PracticeController/countWords)
+             const words = trimmed.match(/«[^»]+»|\S+/g) || [];
+             
+             // Base units for words
+             totalUnits += words.length;
+             
+             // Mid-sentence pauses (1 unit)
+             for (const word of words) {
+                 if (',;:'.includes(word.slice(-1))) {
+                     totalUnits += 1;
+                 }
+                 // Slide header pause (treat # as hard punctuation/double pause)
+                 if (word === '#') {
+                     totalUnits += 2;
+                 }
+             }
+             
+             // End-sentence pause (2 units)
+             // Check the last character of the full sentence text
+             const lastChar = trimmed.slice(-1);
+             if ('.!?'.includes(lastChar)) {
+                 totalUnits += 2;
+             }
+        }
+        
+        return (totalUnits / this.wpm) * 60;
     }
 
     // Split text into paragraphs (normalize line endings; break on blank lines)
@@ -79,6 +129,8 @@ class BilingualMerger {
 
         let enWordsUsed = 0;
         let frWordsUsed = 0;
+        let enDur = 0;
+        let frDur = 0;
         let deltaSec = 0; // positive => English ahead in speaking time
         let streakLang = null;
         let streakDuration = 0;
@@ -88,8 +140,8 @@ class BilingualMerger {
 
         const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
         const totalParas = enParagraphs.length + frParagraphs.length;
-        const totalParaSec = enParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.words), 0)
-            + frParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.words), 0);
+        const totalParaSec = enParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.text), 0)
+            + frParagraphs.reduce((sum, p) => sum + this.estimateDuration(p.text), 0);
         const avgParaSec = totalParas > 0 ? totalParaSec / totalParas : 5;
         const maxAllowedStreak = Math.max(1, Math.floor(totalPairs / 2) || 1);
         const targetStreakCount = clamp(
@@ -109,18 +161,22 @@ class BilingualMerger {
                     const chosenPara = enPara;
                     outputParas.push(chosenPara.text);
                     enWordsUsed += chosenPara.words;
-                    deltaSec += this.estimateDuration(chosenPara.words);
+                    const dur = this.estimateDuration(chosenPara.text);
+                    enDur += dur;
+                    deltaSec += dur;
                     streakLang = 'en';
-                    streakDuration = this.estimateDuration(chosenPara.words);
+                    streakDuration = dur;
                     streakCount = 1;
                     continue;
                 } else if (options.startLang === 'fr' && frPara.words > 0) {
                     const chosenPara = frPara;
                     outputParas.push(chosenPara.text);
                     frWordsUsed += chosenPara.words;
-                    deltaSec -= this.estimateDuration(chosenPara.words);
+                    const dur = this.estimateDuration(chosenPara.text);
+                    frDur += dur;
+                    deltaSec -= dur;
                     streakLang = 'fr';
-                    streakDuration = this.estimateDuration(chosenPara.words);
+                    streakDuration = dur;
                     streakCount = 1;
                     continue;
                 }
@@ -128,8 +184,8 @@ class BilingualMerger {
 
             const mustSwitch = streakLang && streakCount >= targetStreakCount;
 
-            const enParaDur = this.estimateDuration(enPara.words);
-            const frParaDur = this.estimateDuration(frPara.words);
+            const enParaDur = this.estimateDuration(enPara.text);
+            const frParaDur = this.estimateDuration(frPara.text);
 
             const enProjectedStreak = streakLang === 'en' ? streakDuration + enParaDur : enParaDur;
             const frProjectedStreak = streakLang === 'fr' ? streakDuration + frParaDur : frParaDur;
@@ -174,18 +230,20 @@ class BilingualMerger {
 
             if (chosenLang === 'en') {
                 enWordsUsed += chosenPara.words;
-                deltaSec += this.estimateDuration(chosenPara.words);
+                enDur += this.estimateDuration(chosenPara.text);
+                deltaSec += this.estimateDuration(chosenPara.text);
             } else {
                 frWordsUsed += chosenPara.words;
-                deltaSec -= this.estimateDuration(chosenPara.words);
+                frDur += this.estimateDuration(chosenPara.text);
+                deltaSec -= this.estimateDuration(chosenPara.text);
             }
 
             if (streakLang === chosenLang) {
-                streakDuration += this.estimateDuration(chosenPara.words);
+                streakDuration += this.estimateDuration(chosenPara.text);
                 streakCount += 1;
             } else {
                 streakLang = chosenLang;
-                streakDuration = this.estimateDuration(chosenPara.words);
+                streakDuration = this.estimateDuration(chosenPara.text);
                 streakCount = 1;
             }
         }
@@ -207,6 +265,20 @@ class BilingualMerger {
                 }
                 const swapDelta = Math.abs(swapEn - swapFr);
                 if (swapDelta < currentDelta) {
+                    // Note: Swapping logic tracks words but updating duration is complex here.
+                    // Given this is edge case optimization, traversing again or simplifying is acceptable.
+                    // We will re-calculate duration at the end if strict accuracy needed, or just update roughly.
+                    // Let's rely on re-summing or just accepting slight inaccuracy for this edge case swap.
+                    // Actually, let's just update enWordsUsed/frWordsUsed as it does.
+                    // Duration stats might be slightly off if we don't fix it.
+                    // Let's fix it properly.
+                    if (lastChoice.lang === 'en') {
+                         enDur -= this.estimateDuration(lastChoice.text || ''); // rough check
+                         frDur += this.estimateDuration(lastChoice.altText || '');
+                    } else {
+                         frDur -= this.estimateDuration(lastChoice.text || '');
+                         enDur += this.estimateDuration(lastChoice.altText || '');
+                    }
                     outputParas[lastIdx] = lastChoice.altText;
                     enWordsUsed = swapEn;
                     frWordsUsed = swapFr;
@@ -217,7 +289,9 @@ class BilingualMerger {
         return {
             text: outputParas.join('\n\n***\n\n'),
             enWords: enWordsUsed,
-            frWords: frWordsUsed
+            frWords: frWordsUsed,
+            enDur,
+            frDur
         };
     }
 
@@ -233,6 +307,8 @@ class BilingualMerger {
         if (options.slideMode === 'single') {
             let enWordsUsed = 0;
             let frWordsUsed = 0;
+            let enDur = 0;
+            let frDur = 0;
             const slidesOut = [];
             for (let i = 0; i < totalSlides; i++) {
                 const enSlide = enSlides[i] || { title: `# Slide ${i + 1}`, body: '', paragraphs: [], words: 0 };
@@ -262,13 +338,22 @@ class BilingualMerger {
                 }
 
                 slidesOut.push({ text: `${title}\n${chosenSlide.body}`.trim() });
-                if (chosenLang === 'en') enWordsUsed += chosenSlide.words; else frWordsUsed += chosenSlide.words;
+                if (chosenLang === 'en') {
+                     enWordsUsed += chosenSlide.words;
+                     // Only calculate duration ONCE using the full text (Title + Body)
+                     enDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
+                } else {
+                     frWordsUsed += chosenSlide.words;
+                     frDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
+                }
             }
 
             return {
-                text: slidesOut.map(s => s.text).join('\n\n***\n\n'),
+                text: slidesOut.map(s => s.text).join('\n\n---\n\n'),
                 enWords: enWordsUsed,
-                frWords: frWordsUsed
+                frWords: frWordsUsed,
+                enDur,
+                frDur
             };
         }
 
@@ -296,6 +381,8 @@ class BilingualMerger {
             const slidesOut = [];
             let enWords = 0;
             let frWords = 0;
+            let enDur = 0;
+            let frDur = 0;
             let lastEndLang = options.startLang;
 
             for (const meta of slidesMeta) {
@@ -323,7 +410,13 @@ class BilingualMerger {
                     if (!chosen.text) continue;
                     const chosenLang = primary.text ? plannedLang : other(plannedLang);
                     paraOrder.push({ text: chosen.text, lang: chosenLang, words: chosen.words });
-                    if (chosenLang === 'en') slideEn += chosen.words; else slideFr += chosen.words;
+                    if (chosenLang === 'en') {
+                         slideEn += chosen.words;
+                         enDur += this.estimateDuration(chosen.text);
+                    } else {
+                         slideFr += chosen.words;
+                         frDur += this.estimateDuration(chosen.text);
+                    }
                 }
 
                 // Enforce bilingual content per slide by appending the missing language when possible.
@@ -335,7 +428,13 @@ class BilingualMerger {
                         : (meta.frParas[meta.totalParas - 1] || { text: '', words: 0 });
                     if (missingPara.text) {
                         paraOrder.push({ text: missingPara.text, lang: missingLang, words: missingPara.words });
-                        if (missingLang === 'en') slideEn += missingPara.words; else slideFr += missingPara.words;
+                        if (missingLang === 'en') {
+                             slideEn += missingPara.words;
+                             enDur += this.estimateDuration(missingPara.text);
+                        } else {
+                             slideFr += missingPara.words;
+                             frDur += this.estimateDuration(missingPara.text);
+                        }
                     }
                 }
 
@@ -349,17 +448,26 @@ class BilingualMerger {
                 slidesOut.push({ text: parts.join('\n\n').trim(), endLang });
                 enWords += slideEn;
                 frWords += slideFr;
+                
+                // Add title duration to the starting language of the slide
+                // (Since we prepend the title, it effectively belongs to the slide context)
+                if (startLang === 'en') {
+                    enDur += this.estimateDuration(title);
+                } else {
+                    frDur += this.estimateDuration(title);
+                }
+
                 lastEndLang = endLang;
             }
 
-            return { slidesOut, enWords, frWords };
+            return { slidesOut, enWords, frWords, enDur, frDur };
         };
 
         let cuts = Array(totalSlides).fill(undefined);
         slidesMeta.forEach(meta => cuts[meta.index] = meta.defaultCut);
 
         let plan = buildPlan(cuts);
-        let bestDelta = Math.abs(this.estimateDuration(plan.enWords) - this.estimateDuration(plan.frWords));
+        let bestDelta = Math.abs(plan.enDur - plan.frDur);
         const maxIterations = Math.max(1, slidesMeta.length * 4);
 
         for (let iter = 0; iter < maxIterations; iter++) {
@@ -376,7 +484,7 @@ class BilingualMerger {
                     const testCuts = [...cuts];
                     testCuts[meta.index] = newCut;
                     const testPlan = buildPlan(testCuts);
-                    const testDelta = Math.abs(this.estimateDuration(testPlan.enWords) - this.estimateDuration(testPlan.frWords));
+                    const testDelta = Math.abs(testPlan.enDur - testPlan.frDur);
                     if (!candidate || testDelta < candidate.delta) {
                         candidate = { cuts: testCuts, plan: testPlan, delta: testDelta };
                     }
@@ -393,18 +501,417 @@ class BilingualMerger {
         }
 
         return {
-            text: plan.slidesOut.map(s => s.text).join('\n\n***\n\n'),
+            text: plan.slidesOut.map(s => s.text).join('\n\n---\n\n'),
             enWords: plan.enWords,
-            frWords: plan.frWords
+            frWords: plan.frWords,
+            enDur: plan.enDur,
+            frDur: plan.frDur
         };
     }
 }
+// Practice Mode Controller
+class PracticeController {
+    constructor() {
+        this.overlay = document.getElementById('practice-modal');
+        this.prevText = document.getElementById('practice-prev-text');
+        this.currentText = document.getElementById('practice-current-text');
+        this.nextText = document.getElementById('practice-next-text');
+        this.practiceContent = document.getElementById('practice-content');
+        this.playBtn = document.getElementById('practice-play-btn');
+        this.pauseBtn = document.getElementById('practice-pause-btn');
+        this.playIcon = null;
+        this.pauseIcon = null;
+        this.resetBtn = document.getElementById('practice-reset-btn');
+        this.closeBtn = document.getElementById('close-practice-btn');
+        this.wpmSlider = document.getElementById('wpm-slider');
+        this.wpmDisplay = document.getElementById('wpm-display');
+        this.wpmGuidance = document.getElementById('wpm-guidance');
+        this.wpmDescription = document.getElementById('wpm-description');
+        this.timerTotal = document.getElementById('timer-total');
+        this.timerCurrent = document.getElementById('timer-current');
+        this.timerRemaining = document.getElementById('timer-remaining');
+        this.fontIncreaseBtn = document.getElementById('font-increase-btn');
+        this.fontDecreaseBtn = document.getElementById('font-decrease-btn');
+        this.isPlaying = false;
+        this.isPaused = false;
+        this.content = [];
+        this.currentIndex = 0;
+        this.timer = null;
+        this.wpm = parseInt(this.wpmSlider?.value, 10) || 150;
+        this.baseDelay = 60000 / this.wpm;
+        this.currentWordGlobalIdx = 0;
+        this.totalWords = 0;
+        this.launchTime = 0;
+        this.elapsedPaused = 0;
+        this.lastPauseStart = 0;
+        this.fontSize = 300;
+        this.t = {}; // Translations
+        this.bindEvents();
+    }
+    setTranslations(t) {
+        this.t = t;
+        this.updateSpeedDisplay(); // Re-render guidance with new lang
+    }
 
-// UI Controller
+    bindEvents() {
+        if (this.playBtn) this.playBtn.addEventListener('click', () => this.start());
+        if (this.pauseBtn) this.pauseBtn.addEventListener('click', () => this.pause());
+        if (this.resetBtn) this.resetBtn.addEventListener('click', () => this.reset());
+        if (this.closeBtn) this.closeBtn.addEventListener('click', () => this.close());
+        if (this.wpmSlider) {
+            this.wpmSlider.addEventListener('input', () => {
+                this.wpm = Math.max(50, Math.min(600, parseInt(this.wpmSlider.value, 10) || 150));
+                this.baseDelay = 60000 / this.wpm;
+                this.updateSpeedDisplay();
+                this.updateTotalDuration();
+            });
+        }
+        if (this.fontIncreaseBtn) this.fontIncreaseBtn.addEventListener('click', () => this.changeFontSize(10));
+        if (this.fontDecreaseBtn) this.fontDecreaseBtn.addEventListener('click', () => this.changeFontSize(-10));
+        document.addEventListener('keydown', (e) => {
+            if (!this.overlay || !this.overlay.classList.contains('active')) return;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                this.togglePlay();
+            } else if (e.code === 'Escape') {
+                this.close();
+            }
+        });
+    }
+    openFromMerged(mergedText) {
+        // Clean text: remove slide delimiters like *** or --
+        let cleanedText = mergedText.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
+
+        // Attach quotes to words (remove spaces inside quotes)
+        // French guillemets: « word » -> «word»
+        // Update: User requested keeping spaces but treating as one word.
+        // So we do NOT remove spaces.
+        // cleanedText = cleanedText.replace(/«\s+/g, '«').replace(/\s+»/g, '»');
+        // English quotes: " word " -> "word" (simplified: remove space after opening " and before closing " if possible, 
+        // but " is ambiguous. Start with French as it's the main request causing "word" vs " " issues).
+        // For simple " matching, we can try to collapse " \w and \w " but " is context dependent.
+        // Robust generic approach: remove spaces around punctuation that should appear attached?
+        // User specifically asked for " and << or >>.
+        cleanedText = cleanedText.replace(/"\s+([^"]*?)\s+"/g, '"$1"'); // Try to clean paired quotes if possible, else rely on simple trim
+
+        // Split by sentence delimiters (. ! ?) but keep them attached
+        const sentences = cleanedText.replace(/([.!?])\s+/g, '$1|').split('|');
+
+        this.content = sentences.map(text => {
+            const trimmed = text.trim();
+            if (!trimmed) return null;
+            return {
+                text: trimmed,
+                lang: 'mix', // Language detection logic could go here
+                // Use the same regex as countWords to group French quotes
+                words: trimmed.match(/«[^»]+»|\S+/g) || []
+            };
+        }).filter(Boolean);
+
+        if (!this.overlay || this.content.length === 0) return;
+        this.totalWords = this.content.reduce((acc, sent) => acc + sent.words.length, 0);
+        this.overlay.classList.add('active');
+        this.overlay.style.display = 'block';
+        this.overlay.setAttribute('aria-hidden', 'false');
+        this.reset();
+        this.updateTotalDuration();
+        this.applyFontSize();
+    }
+
+    // ... close, reset, togglePlay, start, pause, stop, updatePlayButton, adjustSpeed, updateSpeedDisplay, changeFontSize, applyFontSize, runCountdown, prepareContent ...
+
+    tick() {
+        if (!this.isPlaying) return;
+        if (this.currentIndex >= this.content.length) {
+            this.stop();
+            return;
+        }
+
+        // Calculate timing
+        const currentSentence = this.content[this.currentIndex];
+        const sentenceWords = currentSentence.words;
+        const totalSentenceWords = sentenceWords.length;
+
+        if (typeof this.currentSentenceWordIdx === 'undefined') {
+            this.currentSentenceWordIdx = 0;
+        }
+
+        this.updateThreeSentences();
+        this.updateRunningTimers();
+
+        // Check if we finished the sentence
+        if (this.currentSentenceWordIdx >= totalSentenceWords) {
+            // Calculate pause duration based on punctuation of the FINISHED sentence
+            let pause = 0;
+            const lastChar = currentSentence.text.slice(-1);
+            if ('.!?'.includes(lastChar)) pause = this.baseDelay * 2.0; // 2x word length pause
+            else if (',;:'.includes(lastChar)) pause = this.baseDelay * 1.0;
+
+            // Advance to next sentence IMMEDIATELY so user can see it during the pause
+            this.currentIndex++;
+            this.currentSentenceWordIdx = -1; // -1 indicates "before first word" state
+
+            if (this.currentIndex >= this.content.length) {
+                this.stop(); // End of session
+                return;
+            }
+
+            this.updateThreeSentences(); // Update view to show new sentence
+            this.updateRunningTimers();
+
+            // Wait for the pause, then start highlighting the new sentence
+            this.timer = setTimeout(() => {
+                this.currentSentenceWordIdx = 0; // Ready for first word
+                this.tick();
+            }, pause);
+        } else {
+            // Move to next word
+            // Check if current word (the one we just displayed/processed) ends in mid-sentence punctuation
+            // Note: currentSentenceWordIdx points to the word we are currently on.
+            // When we move to next, we are finishing the current word.
+            let delay = this.baseDelay;
+            const currentWord = sentenceWords[this.currentSentenceWordIdx];
+            if (currentWord) {
+                if (',;:'.includes(currentWord.slice(-1))) {
+                    delay += this.baseDelay; // Add 1x pause
+                }
+                if (currentWord === '#') {
+                    delay += this.baseDelay * 2.0; // Add 2x pause
+                }
+            }
+
+            this.timer = setTimeout(() => {
+                this.currentSentenceWordIdx++;
+                this.currentWordGlobalIdx++;
+                this.tick();
+            }, delay);
+        }
+    }
+    close() {
+        this.stop();
+        if (this.overlay) {
+            this.overlay.classList.remove('active');
+            this.overlay.style.display = 'none';
+            this.overlay.setAttribute('aria-hidden', 'true');
+        }
+    }
+    reset() {
+        this.stop();
+        this.currentIndex = 0;
+        this.currentWordGlobalIdx = 0;
+        this.currentSentenceWordIdx = 0; // Initialize for immediate display
+        this.isPaused = false;
+        this.isPlaying = false;
+        this.updatePlayButton();
+        this.updateThreeSentences();
+        this.updateSpeedDisplay();
+        if (this.timerCurrent) this.timerCurrent.textContent = '00:00';
+        if (this.timerRemaining && this.timerTotal) this.timerRemaining.textContent = this.timerTotal.textContent;
+    }
+    togglePlay() {
+        if (this.isPlaying) {
+            this.pause();
+        } else {
+            this.start();
+        }
+    }
+    start() {
+        if (this.isPlaying) return;
+        this.isPlaying = true;
+        this.isPaused = false;
+        this.updatePlayButton();
+        if (this.currentIndex === 0 && this.currentWordGlobalIdx === 0) {
+            this.runCountdown().then(() => {
+                if (!this.isPlaying) return;
+                this.launchTime = Date.now();
+                this.elapsedPaused = 0;
+                this.tick();
+            });
+        } else {
+            if (this.lastPauseStart) {
+                this.elapsedPaused += (Date.now() - this.lastPauseStart);
+                this.lastPauseStart = 0;
+            }
+            this.tick();
+        }
+    }
+    pause() {
+        this.isPlaying = false;
+        this.isPaused = true;
+        this.lastPauseStart = Date.now();
+        if (this.timer) clearTimeout(this.timer);
+        this.updatePlayButton();
+    }
+    stop() {
+        this.isPlaying = false;
+        this.isPaused = false;
+        if (this.timer) clearTimeout(this.timer);
+        this.updatePlayButton();
+    }
+    updatePlayButton() {
+        if (this.playBtn) this.playBtn.style.display = this.isPlaying ? 'none' : 'inline-flex';
+        if (this.pauseBtn) this.pauseBtn.style.display = this.isPlaying ? 'inline-flex' : 'none';
+    }
+    adjustSpeed(delta) {
+        this.wpm = Math.max(50, Math.min(600, this.wpm + delta));
+        this.baseDelay = 60000 / this.wpm;
+        this.updateSpeedDisplay();
+        this.updateTotalDuration();
+    }
+    updateSpeedDisplay() {
+        if (this.wpmDisplay) this.wpmDisplay.textContent = `${this.wpm} WPM`;
+        if (this.wpmGuidance) {
+            if (this.wpm < 110) this.wpmGuidance.textContent = this.t.practiceSpeedSlow || 'Slow pace';
+            else if (this.wpm > 180) this.wpmGuidance.textContent = this.t.practiceSpeedFast || 'Fast pace';
+            else this.wpmGuidance.textContent = this.t.practiceSpeedNormal || 'Normal pace';
+        }
+    }
+    changeFontSize(delta) {
+        this.fontSize = Math.max(100, Math.min(500, this.fontSize + delta));
+        this.applyFontSize();
+    }
+    applyFontSize() {
+        const secondarySize = Math.max(60, Math.round(this.fontSize * 0.67));
+        if (this.prevText) this.prevText.style.fontSize = `${secondarySize}%`;
+        if (this.currentText) this.currentText.style.fontSize = `${this.fontSize}%`;
+        if (this.nextText) this.nextText.style.fontSize = `${secondarySize}%`;
+        if (this.practiceContent) this.practiceContent.style.fontSize = `${this.fontSize}%`;
+    }
+    runCountdown() {
+        // Ensure text is visible for preparation
+        this.updateThreeSentences();
+
+        const overlay = document.getElementById('countdown-overlay');
+        const number = document.getElementById('countdown-number');
+
+        if (!overlay || !number) return Promise.resolve();
+
+        return new Promise(resolve => {
+            overlay.style.display = 'flex';
+            let count = 3;
+            number.textContent = count;
+            // Indigo color is handled by CSS var(--primary-color) usually, ensuring styling matches
+
+            const int = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    number.textContent = count;
+                } else {
+                    clearInterval(int);
+                    overlay.style.display = 'none';
+                    resolve();
+                }
+            }, 1000);
+        });
+    }
+    prepareContent(en, fr) {
+        // French quote handling integration
+        const process = (t) => t.replace(/«\s*/g, '«').replace(/\s*»/g, '»');
+        const merge = (text, lang) => {
+            const processed = process(text);
+            return processed.replace(/([.!?])\s+/g, '$1|').split('|').filter(s => s.trim()).map(s => ({ text: s.trim(), lang }));
+        };
+        const enS = merge(en, 'en');
+        const frS = merge(fr, 'fr');
+        const combined = [];
+        const max = Math.max(enS.length, frS.length);
+        for (let i = 0; i < max; i++) {
+            if (enS[i]) combined.push({ ...enS[i], words: enS[i].text.split(/\s+/) });
+            if (frS[i]) combined.push({ ...frS[i], words: frS[i].text.split(/\s+/) });
+        }
+        return combined;
+    }
+
+    updateThreeSentences() {
+        const prev = this.content[this.currentIndex - 1];
+        const curr = this.content[this.currentIndex];
+        const next = this.content[this.currentIndex + 1];
+
+        if (this.prevText) {
+            this.prevText.innerHTML = prev ? prev.text : '&nbsp;';
+            this.prevText.className = prev ? `practice-sentence prev ${prev.lang}` : 'practice-sentence prev';
+        }
+
+        if (this.currentText) {
+            // Apply highlighting to the current sentence
+            this.currentText.innerHTML = curr ? this.highlight(curr, this.currentSentenceWordIdx) : (this.t.endOfSession || 'End of session');
+            this.currentText.className = curr ? `practice-sentence active ${curr.lang}` : 'practice-sentence active';
+        }
+
+        if (this.nextText) {
+            this.nextText.innerHTML = next ? next.text : '&nbsp;';
+            this.nextText.className = next ? `practice-sentence next ${next.lang}` : 'practice-sentence next';
+        }
+
+        if (this.practiceContent) {
+            this.practiceContent.style.display = 'none';
+        }
+    }
+
+    highlight(sent, activeWordIndex) {
+        if (!sent || !sent.words) return '';
+        return sent.words.map((word, idx) => {
+            // Highlight current word
+            if (idx === activeWordIndex) {
+                return `<span class="practice-word active">${word}</span>`;
+            }
+            // Words already spoken
+            else if (idx < activeWordIndex) {
+                return `<span class="practice-word spoken">${word}</span>`;
+            }
+            // Future words
+            return `<span class="practice-word">${word}</span>`;
+        }).join(' ');
+    }
+    calculateTotalDuration() {
+        if (!this.content.length) return 0;
+        let totalMs = 0;
+        const wordMs = this.baseDelay;
+        for (const sent of this.content) {
+            // Words duration
+            totalMs += sent.words.length * wordMs;
+            
+            // Mid-sentence pauses (1x)
+            for (const word of sent.words) {
+                 if (',;:'.includes(word.slice(-1))) {
+                     totalMs += wordMs;
+                 }
+                 if (word === '#') {
+                     totalMs += wordMs * 2.0;
+                 }
+            }
+            
+            // Punctuation pause duration (2x)
+            const lastChar = sent.text.slice(-1);
+            if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
+        }
+        return totalMs;
+    }
+    updateTotalDuration() {
+        const ms = this.calculateTotalDuration();
+        const sec = Math.ceil(ms / 1000);
+        const min = Math.floor(sec / 60);
+        const s = sec % 60;
+        if (this.timerTotal) this.timerTotal.textContent = `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    updateRunningTimers() {
+        const ms = (this.currentWordGlobalIdx * this.baseDelay);
+        const sec = Math.floor(ms / 1000);
+        const min = Math.floor(sec / 60);
+        const s = sec % 60;
+        if (this.timerCurrent) this.timerCurrent.textContent = `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        const totalMs = this.calculateTotalDuration();
+        const remMs = Math.max(0, totalMs - ms);
+        const rSec = Math.ceil(remMs / 1000);
+        const rMin = Math.floor(rSec / 60);
+        const rS = rSec % 60;
+        if (this.timerRemaining) this.timerRemaining.textContent = `${String(rMin).padStart(2, '0')}:${String(rS).padStart(2, '0')}`;
+    }
+}
 document.addEventListener('DOMContentLoaded', () => {
     const merger = new BilingualMerger();
-
-    // Elements
+    const practiceMode = new PracticeController();
+    // DOM Elements
     const enInput = document.getElementById('english-text');
     const frInput = document.getElementById('french-text');
     const enCountDisplay = document.getElementById('en-count');
@@ -416,98 +923,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const blockTimeDisplay = document.getElementById('block-time-display');
     const copyBtn = document.getElementById('copy-btn');
     const downloadBtn = document.getElementById('download-btn');
+    const manualControls = document.getElementById('manual-controls');
+    const optimalControls = document.getElementById('optimal-controls');
+    const optimalResultEl = document.getElementById('optimal-result');
+    const durationRadios = document.querySelectorAll('input[name="duration-mode"]');
+    const slideRadios = document.querySelectorAll('input[name="slide-mode"]');
     const statsDiv = document.getElementById('result-stats');
     const presentationSettings = document.getElementById('presentation-settings');
     const mixedPatternSettings = document.getElementById('mixed-pattern-settings');
-    const validationMessage = document.getElementById('validation-message');
-    const modeSummary = document.getElementById('mode-summary');
-    const formatTextBtn = document.getElementById('format-text-btn');
-    const formatTooltipIcon = document.getElementById('format-tooltip');
-    const durationRadios = document.querySelectorAll('input[name="duration-mode"]');
-    const optimalControls = document.getElementById('optimal-controls');
-    const manualControls = document.getElementById('manual-controls');
-    const optimalResultEl = document.getElementById('optimal-result');
-    const durationTooltip = document.getElementById('duration-tooltip');
-    const optimalBandsTooltip = document.getElementById('optimal-bands-tooltip');
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
     const expandButtons = document.querySelectorAll('.expand-btn');
+    const langToggleBtn = document.getElementById('lang-toggle');
     const loadSpeechExampleBtn = document.getElementById('load-speech-example');
     const loadPresentationExampleBtn = document.getElementById('load-presentation-example');
     const resetBtn = document.getElementById('reset-btn');
-    const langToggleBtn = document.getElementById('lang-toggle');
-    const slideRadios = document.querySelectorAll('input[name="slide-mode"]');
-    const mixedPatternRadios = document.querySelectorAll('input[name="mixed-pattern"]');
-    const themeToggleBtn = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-
-    // Helper: format seconds as "X min Y sec" with seconds rounded to nearest 5
-    const formatTime = (seconds, t) => {
-        let mins = Math.floor(seconds / 60);
-        let secs = Math.round((seconds % 60) / 5) * 5;
-        if (secs === 60) {
-            secs = 0;
-            mins += 1;
-        }
-        return mins > 0 ? `${mins} ${t.minAbbr} ${secs} ${t.secAbbr}` : `${secs} ${t.secAbbr}`;
-    };
-
-    const blockTimeWords = (seconds) => Math.round(seconds * (merger.wpm / 60));
-
-    const updateBlockTimeDisplay = (value, t) => {
-        const text = `${value}s (~${blockTimeWords(value)} ${t ? t.words : 'words'})`;
-        blockTimeDisplay.textContent = text;
-    };
-
-    const showValidation = (message) => {
-        if (!validationMessage) return;
-        validationMessage.textContent = message || '';
-        validationMessage.style.display = message ? 'block' : 'none';
-    };
-
-    const updateModeSummary = (text) => {
-        if (!modeSummary) return;
-        if (text) {
-            modeSummary.textContent = text;
-            modeSummary.style.display = 'block';
-        } else {
-            modeSummary.textContent = '';
-            modeSummary.style.display = 'none';
-        }
-    };
-
-    const setMode = (mode) => {
-        const radio = document.querySelector(`input[name="mode"][value="${mode}"]`);
-        if (radio) {
-            radio.checked = true;
-            radio.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-    };
-
-    const syncDurationModeVisibility = () => {
-        const mode = document.querySelector('input[name="mode"]:checked').value;
-        const slideMode = document.querySelector('input[name="slide-mode"]:checked').value;
-        const timeSetting = document.getElementById('time-setting');
-
-        if (mode === 'presentation') {
-            presentationSettings.style.display = 'flex';
-            mixedPatternSettings.style.display = slideMode === 'mixed' ? 'flex' : 'none';
-            timeSetting.style.display = 'none';
-            optimalControls.style.display = 'none';
-            manualControls.style.display = 'none';
-        } else {
-            presentationSettings.style.display = 'none';
-            mixedPatternSettings.style.display = 'none';
-            timeSetting.style.display = 'flex';
-            const durationMode = document.querySelector('input[name="duration-mode"]:checked').value;
-            if (durationMode === 'optimal') {
-                optimalControls.style.display = 'block';
-                manualControls.style.display = 'none';
-            } else {
-                optimalControls.style.display = 'none';
-                manualControls.style.display = 'block';
-            }
-        }
-    };
-
+    const formatTextBtn = document.getElementById('format-text-btn');
+    const formatTooltipIcon = document.getElementById('format-tooltip');
+    const durationTooltip = document.getElementById('duration-tooltip');
+    const optimalBandsTooltip = document.getElementById('optimal-bands-tooltip');
+    const practiceBtn = document.getElementById('practice-btn');
+    let currentLang = 'en';
+    let lastOptimal = null;
+    let lastGenParams = null;
     const translations = {
         en: {
             appTitle: 'Bilingual Text Generator',
@@ -579,7 +1017,34 @@ document.addEventListener('DOMContentLoaded', () => {
             expandFr: 'Expand French text',
             textFormatted: 'Text formatted!',
             descTitle: 'What it does',
-            descContent: 'This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English and French text into one script, with each language taking about half of the time. The tool picks good places to switch between languages and sets the right amount of time to stay in one language before switching.'
+            descContent: 'This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English and French text into one script, with each language taking about half of the time. The tool picks good places to switch between languages and sets the right amount of time to stay in one language before switching.',
+            // Additions
+            liveMode: 'Live Mode',
+            themeToggleAriaLabel: 'Toggle theme',
+            langToggleAriaLabel: 'Toggle interface language',
+            footerLicensePrefix: 'Content on this site is licensed under',
+            footerLicenseLink: 'CC BY-NC 4.0',
+            footerSourcePrefix: '; please credit the source for any non-commercial use. The source code is available on',
+            footerSourceLink: 'GitHub',
+            footerRights: 'Aaron Percival. All rights reserved.',
+            practiceTitle: 'Live Mode',
+            practiceDecreaseFont: 'Decrease font size',
+            practiceIncreaseFont: 'Increase font size',
+            practiceClose: 'Close practice mode',
+            practiceSpeed: 'Speed:',
+            practiceSpeedSlow: 'Slow',
+            practiceSpeedFast: 'Fast',
+            practiceSpeedNormal: 'Normal pace',
+            practiceLabelSlow: 'Slow (100)',
+            practiceLabelFast: 'Fast (180+)',
+            practiceDescription: 'Normal pace (130-160 WPM): Common for public speaking. Balances information and engagement.',
+            practicePlay: 'Play',
+            practicePause: 'Pause',
+            practiceReset: 'Reset',
+            practiceCurrent: 'Current',
+            practiceRemaining: 'Remaining',
+            practiceTotal: 'Total',
+            endOfSession: 'End of session'
         },
         fr: {
             appTitle: 'G\u00e9n\u00e9rateur de texte bilingue',
@@ -651,19 +1116,177 @@ document.addEventListener('DOMContentLoaded', () => {
             expandFr: 'Agrandir le texte fran\u00e7ais',
             textFormatted: 'Texte format\u00e9 !',
             descTitle: 'Ce que fait cet outil',
-            descContent: 'Cet outil vous aide \u00e0 cr\u00e9er une version bilingue d\'un discours ou de notes d\'allocution. Il m\u00e9lange vos textes anglais et fran\u00e7ais en un seul script, chaque langue occupant environ la moiti\u00e9 du temps. L\'outil choisit les bons endroits pour changer de langue et d\u00e9finit la dur\u00e9e appropri\u00e9e pour rester dans une langue avant de changer.'
+            descContent: 'Cet outil vous aide \u00e0 cr\u00e9er une version bilingue d\'un discours ou de notes d\'allocution. Il m\u00e9lange vos textes anglais et fran\u00e7ais en un seul script, chaque langue occupant environ la moiti\u00e9 du temps. L\'outil choisit les bons endroits pour changer de langue et d\u00e9finit la dur\u00e9e appropri\u00e9e pour rester dans une langue avant de changer.',
+            // Additions
+            liveMode: 'Mode direct',
+            themeToggleAriaLabel: 'Changer le thème',
+            langToggleAriaLabel: "Changer la langue de l'interface",
+            footerLicensePrefix: 'Le contenu de ce site est sous licence',
+            footerLicenseLink: 'CC BY-NC 4.0',
+            footerSourcePrefix: '; veuillez créditer la source pour toute utilisation non commerciale. Le code source est disponible sur',
+            footerSourceLink: 'GitHub',
+            footerRights: 'Aaron Percival. Tous droits réservés.',
+            practiceTitle: 'Mode Direct',
+            practiceDecreaseFont: 'Diminuer la taille de la police',
+            practiceIncreaseFont: 'Augmenter la taille de la police',
+            practiceClose: 'Fermer le mode direct',
+            practiceSpeed: 'Vitesse :',
+            practiceSpeedSlow: 'Lent',
+            practiceSpeedFast: 'Rapide',
+            practiceSpeedNormal: 'Rythme normal',
+            practiceLabelSlow: 'Lent (100)',
+            practiceLabelFast: 'Rapide (180+)',
+            practiceDescription: 'Rythme normal (130-160 MPM) : Courant pour la prise de parole en public. Équilibre l\'information et l\'engagement.',
+            practicePlay: 'Lire',
+            practicePause: 'Pause',
+            practiceReset: 'Réinitialiser',
+            practiceCurrent: 'Actuel',
+            practiceRemaining: 'Restant',
+            practiceTotal: 'Total',
+            endOfSession: 'Fin de la session'
+        }
+    };
+    const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    const setHtml = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
+    const applyTranslations = () => {
+        const t = translations[currentLang];
+        document.documentElement.lang = currentLang;
+        practiceMode.setTranslations(t); // Update practice mode translations
+        setText('app-title', t.appTitle);
+        setText('app-subtitle', t.subtitle);
+        setText('desc-title', t.descTitle);
+        setHtml('desc-content', t.descContent);
+        setText('step-input-title', t.stepInputTitle);
+        setText('format-title', t.formatTitle || t.formattingTipsTitle);
+        setHtml('format-general', t.formatGeneral);
+        setHtml('format-speech', t.formatSpeech);
+        setHtml('format-presentation', t.formatPresentation);
+        setText('label-english', t.englishLabel);
+        setText('label-french', t.frenchLabel);
+        setText('load-speech-example', t.loadSpeech);
+        setText('load-presentation-example', t.loadPresentation);
+        setText('reset-btn', t.reset);
+        setText('format-text-label', t.formatButton);
+        setText('step-settings-title', t.stepSettingsTitle);
+        setText('label-mode-text', t.mode);
+        setText('label-mode-speech', t.speech);
+        setText('label-mode-presentation', t.presentation);
+        setText('label-starting-lang', t.startingLanguage);
+        setText('label-start-en', t.english);
+        setText('label-start-fr', t.french);
+        setText('label-slide-mode', t.slideMode);
+        setText('label-slide-single', t.single);
+        setText('label-slide-mixed', t.mixed);
+        setText('label-mixed-pattern', t.mixedModePattern);
+        setText('label-pattern-alternating', t.alternating);
+        setText('label-pattern-repeating', t.repeating);
+        const patternTooltip = document.getElementById('pattern-tooltip');
+        if (patternTooltip) patternTooltip.setAttribute('data-tooltip', t.mixedModePatternTooltip);
+        setText('label-block-time', t.blockTime);
+        setText('block-time-hint', t.blockHint);
+        setText('label-duration-optimal', t.durationOptimal);
+        setText('label-duration-manual', t.durationManual);
+        if (durationTooltip) durationTooltip.setAttribute('data-tooltip', t.durationTooltip);
+        if (optimalBandsTooltip) optimalBandsTooltip.setAttribute('data-tooltip', t.optimalBandsTooltip);
+        setText('generate-btn', t.generate);
+        setText('step-output-main-title', t.outputTitle);
+        setText('output-title', t.outputTitle);
+        setText('copy-btn', t.copy);
+        setText('download-btn', t.download);
+        const enText = document.getElementById('english-text');
+        const frText = document.getElementById('french-text');
+        if (enText) enText.placeholder = t.englishPlaceholder;
+        if (frText) frText.placeholder = t.frenchPlaceholder;
+        const modeTip = document.getElementById('mode-tooltip');
+        if (modeTip) modeTip.setAttribute('data-tooltip', t.modeTip);
+        const slideTip = document.getElementById('slide-tooltip');
+        if (slideTip) slideTip.setAttribute('data-tooltip', t.slideTip);
+        if (expandButtons && expandButtons.length) {
+            if (expandButtons[0]) expandButtons[0].setAttribute('aria-label', t.expandEn);
+            if (expandButtons[1]) expandButtons[1].setAttribute('aria-label', t.expandFr);
+        }
+        if (langToggleBtn) {
+            langToggleBtn.textContent = currentLang === 'en' ? 'FR' : 'EN';
+            langToggleBtn.setAttribute('aria-label', t.langToggleAriaLabel);
+        }
+        if (themeToggleBtn) {
+            themeToggleBtn.setAttribute('aria-label', t.themeToggleAriaLabel);
+        }
+        if (formatTooltipIcon) formatTooltipIcon.setAttribute('data-tooltip', t.formatTooltip);
+        if (practiceBtn) practiceBtn.textContent = t.liveMode;
+
+        // Footer & Practice IDs
+        setText('footer-license-text', t.footerLicensePrefix);
+        setText('footer-source-text', t.footerSourcePrefix);
+        setText('footer-rights', t.footerRights);
+        const footerLicLink = document.querySelector('footer a[href*="creativecommons"]');
+        if (footerLicLink) footerLicLink.textContent = t.footerLicenseLink;
+        const footerSrcLink = document.querySelector('footer a[href*="github"]');
+        if (footerSrcLink) footerSrcLink.textContent = t.footerSourceLink;
+
+        // Practice Mode
+        setText('practice-title', t.practiceTitle);
+        if (document.getElementById('font-decrease-btn')) document.getElementById('font-decrease-btn').setAttribute('aria-label', t.practiceDecreaseFont);
+        if (document.getElementById('font-increase-btn')) document.getElementById('font-increase-btn').setAttribute('aria-label', t.practiceIncreaseFont);
+        if (document.getElementById('close-practice-btn')) document.getElementById('close-practice-btn').setAttribute('aria-label', t.practiceClose);
+        setText('practice-speed-label', t.practiceSpeed);
+        setText('stat-marker-left', t.practiceLabelSlow);
+        setText('stat-marker-right', t.practiceLabelFast);
+        setText('wpm-description', t.practiceDescription);
+        setText('btn-play-label', t.practicePlay);
+        setText('btn-pause-label', t.practicePause);
+        setText('btn-reset-label', t.practiceReset);
+        setText('stat-current-label', t.practiceCurrent);
+        setText('stat-remaining-label', t.practiceRemaining);
+        setText('stat-total-label', t.practiceTotal);
+
+        setText('stat-remaining-label', t.practiceRemaining);
+        setText('stat-total-label', t.practiceTotal);
+
+        updateBlockTimeDisplay(blockTimeInput ? blockTimeInput.value : 45, t);
+        renderOptimalResult();
+        updateInputStats();
+
+        // Regenerate mode summary if we have previous generation params
+        if (lastGenParams) {
+            const { mode, baseOptions, blockTimeValue, optimalSeconds, slideMode } = lastGenParams;
+            if (mode === 'presentation') {
+                // Translated values for slideMode ('single' or 'mixed')
+                const smTranslated = t[slideMode] || slideMode;
+                updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), smTranslated));
+            } else {
+                updateModeSummary(t.modeSummarySpeech(
+                    baseOptions.startLang.toUpperCase(),
+                    blockTimeValue,
+                    blockTimeWords(blockTimeValue),
+                    optimalSeconds
+                ));
+            }
         }
     };
 
-    let currentLang = 'en';
-    let lastOptimal = null;
-
+    const formatTime = (seconds, t) => {
+        // Match Live Mode precision (approx 1s)
+        if (!isFinite(seconds)) return '--:--';
+        const rounded = Math.ceil(seconds);
+        if (rounded < 60) return `${rounded} ${t.sec || 'sec'}`;
+        const mins = Math.floor(rounded / 60);
+        const secs = rounded % 60;
+        return `${mins} ${t.min || 'min'} ${secs} ${t.sec || 'sec'}`;
+    };
+    const blockTimeWords = (seconds) => Math.round((seconds / 60) * 150);
     const calculateOptimal = (startLangFallback = 'en') => {
         const enWords = merger.countWords(enInput.value);
         const frWords = merger.countWords(frInput.value);
         if (enWords === 0 || frWords === 0) return null;
-        const enSec = merger.estimateDuration(enWords);
-        const frSec = merger.estimateDuration(frWords);
+        const enSec = merger.estimateDuration(enInput.value);
+        const frSec = merger.estimateDuration(frInput.value);
         const avgMinutes = ((enSec + frSec) / 2) / 60;
         const avgWords = Math.round((enWords + frWords) / 2);
 
@@ -713,80 +1336,51 @@ document.addEventListener('DOMContentLoaded', () => {
             optimalResultEl.style.display = 'none';
         }
     };
+    const syncDurationModeVisibility = () => {
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const slideMode = document.querySelector('input[name="slide-mode"]:checked').value;
+        const timeSetting = document.getElementById('time-setting');
 
-    const applyTranslations = () => {
-        const t = translations[currentLang];
-        document.documentElement.lang = currentLang;
-        document.title = t.appTitle;
-        const setText = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value;
-        };
-        setText('app-title', t.appTitle);
-        setText('app-subtitle', t.subtitle);
-        setText('step-input-title', t.stepInputTitle);
-        setText('step-settings-title', t.stepSettingsTitle);
-        setText('label-english', t.englishLabel);
-        setText('label-french', t.frenchLabel);
-        setText('label-french', t.frenchLabel);
-        setText('format-title', t.formatTitle);
-        setText('desc-title', t.descTitle);
-        setText('desc-content', t.descContent);
-        const setHTML = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = value;
-        };
-        setHTML('format-speech', t.formatSpeech);
-        setHTML('format-presentation', t.formatPresentation);
-        setHTML('format-general', t.formatGeneral);
-        setText('load-speech-example', t.loadSpeech);
-        setText('load-presentation-example', t.loadPresentation);
-        setText('reset-btn', t.reset);
-        setText('format-text-label', t.formatButton);
-        setText('settings-title', t.settings);
-        setText('label-mode-text', t.mode);
-        setText('label-mode-speech', t.speech);
-        setText('label-mode-presentation', t.presentation);
-        setText('label-starting-lang', t.startingLanguage);
-        setText('label-start-en', t.english);
-        setText('label-start-fr', t.french);
-        setText('label-slide-mode', t.slideMode);
-        setText('label-slide-single', t.single);
-        setText('label-slide-mixed', t.mixed);
-        setText('label-mixed-pattern', t.mixedModePattern);
-        setText('label-pattern-alternating', t.alternating);
-        setText('label-pattern-repeating', t.repeating);
-        const patternTooltip = document.getElementById('pattern-tooltip');
-        if (patternTooltip) patternTooltip.setAttribute('data-tooltip', t.mixedModePatternTooltip);
-        setText('label-block-time', t.blockTime);
-        setText('block-time-hint', t.blockHint);
-        setText('label-duration-optimal', t.durationOptimal);
-        setText('label-duration-manual', t.durationManual);
-        if (durationTooltip) durationTooltip.setAttribute('data-tooltip', t.durationTooltip);
-        if (optimalBandsTooltip) optimalBandsTooltip.setAttribute('data-tooltip', t.optimalBandsTooltip);
-        setText('generate-btn', t.generate);
-        setText('output-title', t.outputTitle);
-        setText('copy-btn', t.copy);
-        setText('download-btn', t.download);
-        const enText = document.getElementById('english-text');
-        const frText = document.getElementById('french-text');
-        if (enText) enText.placeholder = t.englishPlaceholder;
-        if (frText) frText.placeholder = t.frenchPlaceholder;
-        const modeTip = document.getElementById('mode-tooltip');
-        if (modeTip) modeTip.setAttribute('data-tooltip', t.modeTip);
-        const slideTip = document.getElementById('slide-tooltip');
-        if (slideTip) slideTip.setAttribute('data-tooltip', t.slideTip);
-        if (expandButtons && expandButtons.length) {
-            if (expandButtons[0]) expandButtons[0].setAttribute('aria-label', t.expandEn);
-            if (expandButtons[1]) expandButtons[1].setAttribute('aria-label', t.expandFr);
+        if (mode === 'presentation') {
+            presentationSettings.style.display = 'flex';
+            mixedPatternSettings.style.display = slideMode === 'mixed' ? 'flex' : 'none';
+            timeSetting.style.display = 'none';
+            if (optimalControls) optimalControls.style.display = 'none';
+            if (manualControls) manualControls.style.display = 'none';
+        } else {
+            presentationSettings.style.display = 'none';
+            mixedPatternSettings.style.display = 'none';
+            timeSetting.style.display = 'flex';
+            if (manualControls && optimalControls) {
+                const durationMode = document.querySelector('input[name="duration-mode"]:checked')?.value || 'optimal';
+                manualControls.style.display = durationMode === 'manual' ? 'flex' : 'none';
+                optimalControls.style.display = durationMode === 'optimal' ? 'block' : 'none';
+            }
         }
-        if (langToggleBtn) langToggleBtn.textContent = currentLang === 'en' ? 'FR' : 'EN';
-        if (formatTooltipIcon) formatTooltipIcon.setAttribute('data-tooltip', t.formatTooltip);
-        updateBlockTimeDisplay(blockTimeInput.value, t);
-        renderOptimalResult();
-        updateInputStats();
     };
-
+    const updateModeSummary = (text) => {
+        const el = document.getElementById('mode-summary');
+        if (el) {
+            el.textContent = text;
+            el.style.display = text ? 'block' : 'none';
+        }
+    };
+    const showValidation = (msg) => {
+        const el = document.getElementById('validation-message');
+        if (el) el.textContent = msg;
+    };
+    const setMode = (mode) => {
+        const radio = document.querySelector(`input[name="mode"][value="${mode}"]`);
+        if (radio) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change'));
+        }
+    };
+    const updateBlockTimeDisplay = (seconds, t) => {
+        if (blockTimeDisplay) {
+            blockTimeDisplay.textContent = `${seconds}s`;
+        }
+    };
     const resetForm = () => {
         enInput.value = '';
         frInput.value = '';
@@ -808,7 +1402,6 @@ document.addEventListener('DOMContentLoaded', () => {
         outputPreview.textContent = '';
         outputSection.style.display = 'none';
     };
-
     const loadExample = async (type) => {
         try {
             const files = type === 'presentation'
@@ -830,26 +1423,21 @@ document.addEventListener('DOMContentLoaded', () => {
             showValidation(translations[currentLang].exampleLoadError);
         }
     };
-
     const showToast = (message) => {
         const existing = document.querySelector('.toast-notification');
         if (existing) existing.remove();
-
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
         toast.textContent = message;
         document.body.appendChild(toast);
-
         // Force reflow
         toast.offsetHeight;
         toast.classList.add('show');
-
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, 3000);
     };
-
     const updateOptimalFromInputs = () => {
         const selected = document.querySelector('input[name="duration-mode"]:checked');
         if (selected && selected.value === 'optimal') {
@@ -857,19 +1445,17 @@ document.addEventListener('DOMContentLoaded', () => {
             renderOptimalResult();
         }
     };
-
     // Live word count & duration for input areas
     const updateInputStats = () => {
         const t = translations[currentLang];
         const enWords = merger.countWords(enInput.value);
         const frWords = merger.countWords(frInput.value);
-        const enDurSec = merger.estimateDuration(enWords);
-        const frDurSec = merger.estimateDuration(frWords);
+        const enDurSec = merger.estimateDuration(enInput.value);
+        const frDurSec = merger.estimateDuration(frInput.value);
         enCountDisplay.textContent = `${enWords} ${t.words} (~${formatTime(enDurSec, t)})`;
         frCountDisplay.textContent = `${frWords} ${t.words} (~${formatTime(frDurSec, t)})`;
         updateOptimalFromInputs();
     };
-
     const formatTextContent = (text) => {
         if (!text) return '';
         let normalized = text.replace(/\r\n?/g, '\n');
@@ -884,10 +1470,8 @@ document.addEventListener('DOMContentLoaded', () => {
         normalized = normalized.replace(/\n{3,}/g, '\n\n');
         return normalized.trimEnd();
     };
-
     enInput.addEventListener('input', updateInputStats);
     frInput.addEventListener('input', updateInputStats);
-
     // Auto‑suggest block time when user leaves a textarea
     const autoSetBlockTime = () => {
         const enWords = merger.countWords(enInput.value);
@@ -904,12 +1488,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     enInput.addEventListener('change', autoSetBlockTime);
     frInput.addEventListener('change', autoSetBlockTime);
-
     // Slider display
     blockTimeInput.addEventListener('input', (e) => {
         updateBlockTimeDisplay(e.target.value, translations[currentLang]);
     });
-
     durationRadios.forEach(r => {
         r.addEventListener('change', (e) => {
             syncDurationModeVisibility();
@@ -919,15 +1501,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
     slideRadios.forEach(r => r.addEventListener('change', () => {
         syncDurationModeVisibility();
     }));
-
     syncDurationModeVisibility();
     syncDurationModeVisibility();
     applyTranslations();
-
     // Theme Logic
     const initTheme = () => {
         const savedTheme = localStorage.getItem('theme');
@@ -941,7 +1520,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateThemeIcon('light');
         }
     };
-
     const updateThemeIcon = (theme) => {
         if (themeIcon) {
             // SVGs using currentColor to match text color (solid black in light, solid white in dark)
@@ -950,7 +1528,6 @@ document.addEventListener('DOMContentLoaded', () => {
             themeIcon.innerHTML = theme === 'dark' ? sunSvg : moonSvg;
         }
     };
-
     const toggleTheme = () => {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -958,31 +1535,23 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', newTheme);
         updateThemeIcon(newTheme);
     };
-
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', toggleTheme);
     }
     initTheme();
-
     // Mode toggle – show/hide block-time setting
     const modeRadios = document.querySelectorAll('input[name="mode"]');
     const timeSetting = document.getElementById('time-setting');
     modeRadios.forEach(r => {
         r.addEventListener('change', (e) => {
             const isSpeech = e.target.value === 'speech';
-            timeSetting.style.display = isSpeech ? 'flex' : 'none';
-            presentationSettings.style.display = isSpeech ? 'none' : 'flex';
-            if (isSpeech) {
-                syncDurationModeVisibility();
-            } else {
-                if (optimalControls) optimalControls.style.display = 'none';
-                if (manualControls) manualControls.style.display = 'none';
+            syncDurationModeVisibility();
+            if (!isSpeech) {
                 lastOptimal = null;
                 renderOptimalResult();
             }
         });
     });
-
     // Generate bilingual speech
     generateBtn.addEventListener('click', () => {
         const t = translations[currentLang];
@@ -997,14 +1566,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const baseOptions = {
             startLang: document.querySelector('input[name="start-lang"]:checked').value
         };
-
         let resultObj;
         if (mode === 'presentation') {
             const slideMode = document.querySelector('input[name="slide-mode"]:checked').value;
             const mixedPattern = document.querySelector('input[name="mixed-pattern"]:checked').value;
             const enSlides = merger.parseSlides(enText);
             const frSlides = merger.parseSlides(frText);
-
             if (enSlides.length === 0 && frSlides.length === 0) {
                 showValidation(t.validationNoSlides);
                 return;
@@ -1017,7 +1584,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showValidation(t.validationNoFrSlides);
                 return;
             }
-
             if (enSlides.length !== frSlides.length) {
                 showValidation(t.validationSlides(enSlides.length, frSlides.length));
                 return;
@@ -1032,7 +1598,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             resultObj = merger.mergePresentation(enText, frText, { ...baseOptions, slideMode, mixedPattern });
-            updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), slideMode));
+
+            // Save params for dynamic translation
+            lastGenParams = { mode: 'presentation', baseOptions, slideMode };
+            const smTranslated = t[slideMode] || slideMode;
+            updateModeSummary(t.modeSummaryPresentation(baseOptions.startLang.toUpperCase(), smTranslated));
         } else {
             const enParas = merger.parseParagraphs(enText);
             const frParas = merger.parseParagraphs(frText);
@@ -1052,6 +1622,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderOptimalResult();
             }
             resultObj = merger.merge(enText, frText, { ...baseOptions, blockTime: blockTimeValue });
+
+            lastGenParams = { mode: 'speech', baseOptions, blockTimeValue, optimalSeconds };
             updateModeSummary(t.modeSummarySpeech(
                 baseOptions.startLang.toUpperCase(),
                 blockTimeValue,
@@ -1059,12 +1631,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 optimalSeconds
             ));
         }
-
         // Compute durations based on actually used words
-        const enSec = merger.estimateDuration(resultObj.enWords);
-        const frSec = merger.estimateDuration(resultObj.frWords);
+        // Compute durations based on actually used words
+        const enSec = resultObj.enDur || merger.estimateDuration(resultObj.enWords); // Fallback if enDur not present (safeguard)
+        const frSec = resultObj.frDur || merger.estimateDuration(resultObj.frWords);
         const totalSec = enSec + frSec;
-
         if (statsDiv) {
             statsDiv.innerHTML = `
                 <div><strong>${t.statsEnglish}:</strong> ${resultObj.enWords} ${t.words} (~${formatTime(enSec, t)})</div>
@@ -1072,12 +1643,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><strong>${t.statsTotal}:</strong> ~${formatTime(totalSec, t)}</div>
             `;
         }
-
         outputPreview.textContent = resultObj.text;
         outputSection.style.display = 'block';
         outputSection.scrollIntoView({ behavior: 'smooth' });
     });
-
     // Copy to clipboard
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(outputPreview.textContent).then(() => {
@@ -1086,7 +1655,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => copyBtn.textContent = original, 2000);
         });
     });
-
     // Download markdown file
     downloadBtn.addEventListener('click', () => {
         const blob = new Blob([outputPreview.textContent], { type: 'text/markdown' });
@@ -1099,11 +1667,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     });
-
     // Expandable textareas
     let expandedWrapper = null;
     let overlay = null;
-
     const collapseExpanded = () => {
         if (expandedWrapper) {
             expandedWrapper.classList.remove('expanded');
@@ -1114,7 +1680,6 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay = null;
         }
     };
-
     const expandWrapper = (wrapper) => {
         if (expandedWrapper === wrapper) return;
         collapseExpanded();
@@ -1127,7 +1692,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const ta = wrapper.querySelector('textarea');
         if (ta) ta.focus();
     };
-
     expandButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1137,20 +1701,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             collapseExpanded();
         }
     });
-
     if (langToggleBtn) {
         langToggleBtn.addEventListener('click', () => {
             currentLang = currentLang === 'en' ? 'fr' : 'en';
             applyTranslations();
         });
     }
-
+    if (practiceBtn) {
+        practiceBtn.addEventListener('click', () => {
+            const text = outputPreview.textContent.trim();
+            if (!text) {
+                showValidation('Generate output first.');
+                return;
+            }
+            practiceMode.openFromMerged(text);
+        });
+    }
     if (loadSpeechExampleBtn) {
         loadSpeechExampleBtn.addEventListener('click', () => loadExample('speech'));
     }

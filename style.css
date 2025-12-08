@@ -767,8 +767,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* Output Section */
-.output-section {
-    margin-top: 3rem;
+.output-card {
     background-color: var(--card-bg);
     border-radius: var(--radius);
     padding: 2.5rem;
@@ -797,6 +796,31 @@ input[type="range"]::-webkit-slider-thumb:hover {
     to {
         opacity: 1;
     }
+}
+
+.font-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    margin-right: 1rem;
+}
+
+.icon-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.icon-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .output-header {
@@ -959,5 +983,326 @@ input[type="range"]::-webkit-slider-thumb:hover {
         flex: 1;
         margin-left: 0;
         text-align: center;
+    }
+}
+
+/* Practice Mode Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-container {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 1000px;
+    height: 100%;
+    max-height: none;
+    /* Prevent it from being too tall on large screens */
+    margin: auto;
+    /* Fallback for centering */
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-accent);
+}
+
+.modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    color: var(--text-main);
+    background: var(--bg-hover);
+}
+
+.modal-controls {
+    padding: 1rem 2rem;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.wpm-control {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.wpm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.wpm-header label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.wpm-display {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-feature-settings: "tnum";
+}
+
+.wpm-guidance {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 1rem;
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.wpm-markers {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.wpm-description {
+    display: none;
+    /* Hide description to save space in controls */
+}
+
+.playback-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.practice-action-btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+}
+
+.timer-stats {
+    display: flex;
+    gap: 1.5rem;
+    width: auto;
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-family: monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.teleprompter-window {
+    flex: 1;
+    overflow-y: hidden;
+    padding: 2rem;
+    position: relative;
+    background: var(--card-bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6rem;
+    /* Constant spacing */
+}
+
+/* Sentence-based styling */
+.practice-sentence {
+    transition: all 0.4s ease;
+    opacity: 0;
+    transform: scale(0.95);
+    filter: blur(2px);
+    display: none;
+    /* JS toggles visibility */
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.practice-sentence.prev {
+    display: block;
+    opacity: 0.4;
+    transform: scale(0.9);
+    filter: blur(1px);
+    font-size: 1.2rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+    order: 0;
+}
+
+.practice-sentence.active {
+    display: block;
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+    font-size: 6rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-main);
+    order: 1;
+}
+
+.practice-sentence.next {
+    display: block;
+    opacity: 0.4;
+    transform: scale(0.9);
+    filter: blur(1px);
+    font-size: 1.2rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+    order: 2;
+}
+
+/* Word Highlighting */
+.practice-word {
+    padding: 0 0.1em;
+    border-radius: 4px;
+    transition: color 0.1s, background-color 0.1s;
+    display: inline;
+    /* Use inline for proper text wrapping */
+}
+
+.practice-word.spoken {
+    color: var(--text-main);
+    /* Ensure typed words stay visible */
+    opacity: 0.8;
+}
+
+.practice-word.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 0 0 4px var(--primary-color);
+    /* Slightly larger highlight */
+    border-radius: 3px;
+    margin: 0 2px;
+    /* Add breathing room for highlight */
+}
+
+/* Countdown */
+.countdown-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    /* Very subtle overlay */
+    z-index: 20;
+    /* Removed blur to allow reading the text */
+}
+
+[data-theme="dark"] .countdown-overlay {
+    background: rgba(15, 23, 42, 0.4);
+    /* Slightly darker for dark mode contrast */
+}
+
+#countdown-number {
+    font-size: 10rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    animation: countdownPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 640px) {
+    .modal-container {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+    }
+
+    .practice-sentence.active {
+        font-size: 1.5rem;
+    }
+
+    .modal-controls {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .timer-stats {
+        width: 100%;
+        justify-content: space-around;
+        border-top: 1px solid var(--border-color);
+        padding-top: 0.5rem;
     }
 }

@@ -185,36 +185,114 @@
 
             <div id="mode-summary" class="mode-summary" aria-live="polite" style="display: none;"></div>
 
-            <section class="output-section" id="output-section" style="display: none;">
-                <div class="output-header">
-                    <h2 id="output-title"></h2>
-                    <div class="output-actions">
-                        <button id="copy-btn" class="secondary-btn"></button>
-                        <button id="download-btn" class="secondary-btn"></button>
-                    </div>
+            <section class="step-section" id="output-section" style="display: none;">
+                <div class="step-header">
+                    <span class="step-badge">3</span>
+                    <h2 id="step-output-main-title"></h2>
                 </div>
-                <div id="result-stats" class="result-stats"></div>
-                <div id="output-preview" class="markdown-preview"></div>
+                <div class="output-card">
+                    <div class="output-header">
+                        <h2 id="output-title"></h2>
+                        <div class="output-actions">
+                            <button id="copy-btn" class="secondary-btn"></button>
+                            <button id="download-btn" class="secondary-btn"></button>
+                            <button id="practice-btn" class="primary-btn">Live Mode</button>
+                        </div>
+                    </div>
+                    <div id="result-stats" class="result-stats"></div>
+                    <div id="output-preview" class="markdown-preview"></div>
+                </div>
             </section>
         </main>
 
         <footer class="page-footer">
             <p>
-                Content on this site is licensed under
+                <span id="footer-license-text">Content on this site is licensed under</span>
                 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="license noopener" target="_blank">CC
-                    BY-NC 4.0</a>;
-                please credit the source for any non-commercial use. The source code
-                is available on
+                    BY-NC 4.0</a><span id="footer-source-text">;
+                    please credit the source for any non-commercial use. The source code
+                    is available on</span>
                 <a href="https://github.com/ampercival/text-bilingual" rel="noopener" target="_blank">GitHub</a>.
             </p>
             <p>
-                © <span id="year"></span> Aaron Percival. All rights reserved.
+                © <span id="year"></span> <span id="footer-rights">Aaron Percival. All rights reserved.</span>
             </p>
             <script>
                 document.getElementById("year").textContent = new Date().getFullYear();
             </script>
         </footer>
     </div>
+
+    <!-- Practice Mode Modal -->
+    <div id="practice-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 id="practice-title">Live Mode</h2>
+                <div class="font-controls">
+                    <button id="font-decrease-btn" class="icon-btn" aria-label="Decrease font size">A-</button>
+                    <button id="font-increase-btn" class="icon-btn" aria-label="Increase font size">A+</button>
+                </div>
+                <button id="close-practice-btn" class="close-btn" aria-label="Close practice mode">&times;</button>
+            </div>
+
+            <div class="modal-controls">
+                <div class="wpm-control">
+                    <div class="wpm-header">
+                        <label for="wpm-slider"><span id="practice-speed-label">Speed:</span> <span id="wpm-display">150
+                                WPM</span></label>
+                        <span id="wpm-guidance" class="wpm-guidance">Normal pace</span>
+                    </div>
+                    <input type="range" id="wpm-slider" min="60" max="220" value="150" step="5">
+                    <div class="wpm-markers">
+                        <span id="stat-marker-left" class="marker-label left">Slow (100)</span>
+                        <span id="stat-marker-right" class="marker-label right">Fast (180+)</span>
+                    </div>
+                    <p id="wpm-description" class="wpm-description">
+                        Normal pace (130-160 WPM): Common for public speaking. Balances information and engagement.
+                    </p>
+                </div>
+
+                <div class="playback-controls">
+                    <button id="practice-play-btn" class="primary-btn practice-action-btn">
+                        <span class="icon">▶</span> <span id="btn-play-label">Play</span>
+                    </button>
+                    <button id="practice-pause-btn" class="secondary-btn practice-action-btn" style="display: none;">
+                        <span class="icon">⏸</span> <span id="btn-pause-label">Pause</span>
+                    </button>
+                    <button id="practice-reset-btn" class="secondary-btn practice-action-btn">
+                        <span class="icon">↺</span> <span id="btn-reset-label">Reset</span>
+                    </button>
+                </div>
+
+                <div class="timer-stats">
+                    <div class="stat-item">
+                        <span id="stat-current-label" class="stat-label">Current</span>
+                        <span id="timer-current" class="stat-value">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="stat-remaining-label" class="stat-label">Remaining</span>
+                        <span id="timer-remaining" class="stat-value">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="stat-total-label" class="stat-label">Total</span>
+                        <span id="timer-total" class="stat-value">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="teleprompter-window">
+                <div id="countdown-overlay" class="countdown-overlay" style="display: none;">
+                    <span id="countdown-number">3</span>
+                </div>
+                <div id="practice-prev-text" class="practice-sentence prev">&nbsp;</div>
+                <div id="practice-current-text" class="practice-sentence active"></div>
+                <div id="practice-next-text" class="practice-sentence next">&nbsp;</div>
+                <!-- Fallback/Additional container if needed, though strictly we use the 3 above now -->
+                <div id="practice-content" class="practice-content" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
     <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
     <script>
         kofiWidgetOverlay.draw('ampercival', {
