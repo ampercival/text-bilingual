@@ -1439,7 +1439,9 @@ document.addEventListener('DOMContentLoaded', () => {
             practiceCurrent: 'Current',
             practiceRemaining: 'Remaining',
             practiceTotal: 'Total',
-            endOfSession: 'End of session'
+            endOfSession: 'End of session',
+            countdownLabel: 'Countdown',
+            pauseSlideLabel: 'Pause on Slide'
         },
         fr: {
             appTitle: 'G\u00e9n\u00e9rateur de texte bilingue',
@@ -1538,7 +1540,9 @@ document.addEventListener('DOMContentLoaded', () => {
             practiceCurrent: 'Actuel',
             practiceRemaining: 'Restant',
             practiceTotal: 'Total',
-            endOfSession: 'Fin de la session'
+            endOfSession: 'Fin de la session',
+            countdownLabel: 'Compte à rebours',
+            pauseSlideLabel: 'Pause sur diapositive'
         }
     };
     const setText = (id, text) => {
