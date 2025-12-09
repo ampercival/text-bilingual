@@ -81,6 +81,8 @@
                     </div>
                     <button id="load-speech-example" class="text-btn"></button>
                     <button id="load-presentation-example" class="text-btn"></button>
+                    <button id="save-session-btn" class="text-btn">Save</button>
+                    <button id="load-session-btn" class="text-btn">Load</button>
                     <button id="reset-btn" class="text-btn text-btn-danger"></button>
                 </div>
             </section>
@@ -289,6 +291,45 @@
                 <div id="practice-next-text" class="practice-sentence next">&nbsp;</div>
                 <!-- Fallback/Additional container if needed, though strictly we use the 3 above now -->
                 <div id="practice-content" class="practice-content" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Session Modal -->
+    <div id="save-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Save Session</h2>
+                <button id="close-save-btn" class="close-btn" aria-label="Close save dialog">&times;</button>
+            </div>
+            <div class="modal-controls" style="display: block;">
+                <div class="input-group">
+                    <label for="session-name-input">Session Name</label>
+                    <input type="text" id="session-name-input" class="text-input" placeholder="e.g. Project Alpha"
+                        style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--card-bg); color: var(--text-main);">
+                </div>
+                <div class="action-area"
+                    style="margin-top: 1.5rem; text-align: right; display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button id="cancel-save-btn" class="secondary-btn">Cancel</button>
+                    <button id="confirm-save-btn" class="primary-btn"
+                        style="padding: 0.75rem 1.5rem; font-size: 1rem;">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Session Modal -->
+    <div id="load-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Load Session</h2>
+                <button id="close-load-btn" class="close-btn" aria-label="Close load dialog">&times;</button>
+            </div>
+            <div class="modal-controls" style="display: block;">
+                <div id="session-list" class="session-list">
+                    <!-- Session items will be injected here -->
+                    <p class="empty-state">No saved sessions found.</p>
+                </div>
             </div>
         </div>
     </div>

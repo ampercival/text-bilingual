@@ -7,8 +7,9 @@
 - [ ] Save user preferences (WPM, last used settings) to localStorage
 
 ## 🐛 Bugs to Fix
-- [ ] None known at this time
+- [ ] Add wordcount to result-stats total
 
 ## 💡 Ideas / Future Features
+- [ ] Save text to localStorage
 - [ ] Allow export to PDF directly
 - [ ] Import of word documents
