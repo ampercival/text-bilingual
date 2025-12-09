@@ -242,7 +242,14 @@
                     <div class="wpm-header">
                         <label for="wpm-slider"><span id="practice-speed-label">Speed:</span> <span id="wpm-display">150
                                 WPM</span></label>
-                        <span id="wpm-guidance" class="wpm-guidance">Normal pace</span>
+                        <div class="countdown-toggle">
+                            <input type="checkbox" id="countdown-checkbox" checked>
+                            <label for="countdown-checkbox" id="label-countdown">Countdown</label>
+                        </div>
+                        <div class="countdown-toggle">
+                            <input type="checkbox" id="pause-slide-checkbox" disabled>
+                            <label for="pause-slide-checkbox" id="label-pause-slide">Pause on Slide</label>
+                        </div>
                     </div>
                     <input type="range" id="wpm-slider" min="60" max="220" value="150" step="5">
                     <div class="wpm-markers">

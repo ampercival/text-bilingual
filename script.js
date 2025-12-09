@@ -545,12 +545,19 @@ class PracticeController {
         this.elapsedPaused = 0;
         this.lastPauseStart = 0;
         this.fontSize = 300;
+        this.countdownCheckbox = document.getElementById('countdown-checkbox');
+        this.pauseSlideCheckbox = document.getElementById('pause-slide-checkbox');
         this.t = {}; // Translations
         this.bindEvents();
     }
     setTranslations(t) {
         this.t = t;
         this.updateSpeedDisplay(); // Re-render guidance with new lang
+        // Update countdown label if exists
+        const lbl = document.getElementById('label-countdown');
+        if (lbl && t.countdownLabel) lbl.textContent = t.countdownLabel;
+        const lblPause = document.getElementById('label-pause-slide');
+        if (lblPause) lblPause.textContent = t.pauseSlideLabel || 'Pause on Slide';
     }
 
     bindEvents() {
@@ -613,6 +620,13 @@ class PracticeController {
         }).filter(Boolean);
 
         if (!this.overlay || this.content.length === 0) return;
+        // Check for slides to enable/disable pause-on-slide
+        const hasSlides = this.content.some(s => s.text.startsWith('#'));
+        if (this.pauseSlideCheckbox) {
+            this.pauseSlideCheckbox.disabled = !hasSlides;
+            if (!hasSlides) this.pauseSlideCheckbox.checked = false;
+        }
+
         this.totalWords = this.content.reduce((acc, sent) => acc + sent.words.length, 0);
         this.overlay.classList.add('active');
         this.overlay.style.display = 'block';
@@ -655,8 +669,24 @@ class PracticeController {
             this.currentIndex++;
             this.currentSentenceWordIdx = -1; // -1 indicates "before first word" state
 
+            // If no more sentences, stop and show end
             if (this.currentIndex >= this.content.length) {
-                this.stop(); // End of session
+                this.updateThreeSentences(); // Show 'End of session'
+                this.stop();
+                return;
+            }
+
+            // Check if NEXT sentence is a slide header AND checkbox is checked
+            const nextSentence = this.content[this.currentIndex];
+            const nextIsSlide = nextSentence && nextSentence.text.startsWith('#');
+            // Note: currentIndex was incremented above.
+
+            if (nextIsSlide && this.pauseSlideCheckbox && this.pauseSlideCheckbox.checked && !this.pauseSlideCheckbox.disabled) {
+                // We just advanced index. currentSentenceWordIdx is -1 or 0? 
+                // In the code block above, it was set to -1.
+                this.currentSentenceWordIdx = 0; // Ensure it's ready to show
+                this.updateThreeSentences(); // Show Header
+                this.pause(); // Pause playback
                 return;
             }
 
@@ -725,12 +755,21 @@ class PracticeController {
         this.isPaused = false;
         this.updatePlayButton();
         if (this.currentIndex === 0 && this.currentWordGlobalIdx === 0) {
-            this.runCountdown().then(() => {
+            // Check optional countdown
+            const useCountdown = this.countdownCheckbox ? this.countdownCheckbox.checked : true;
+
+            const startLogic = () => {
                 if (!this.isPlaying) return;
                 this.launchTime = Date.now();
                 this.elapsedPaused = 0;
                 this.tick();
-            });
+            };
+
+            if (useCountdown) {
+                this.runCountdown().then(startLogic);
+            } else {
+                startLogic();
+            }
         } else {
             if (this.lastPauseStart) {
                 this.elapsedPaused += (Date.now() - this.lastPauseStart);
