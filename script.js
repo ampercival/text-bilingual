@@ -579,27 +579,27 @@ class PracticeController {
         });
     }
     openFromMerged(mergedText) {
-        // Fix: Ensure slide headers (lines starting with #) are treated as separate sentences
-        // Inject a pipe delimiter after header lines so they split correctly later
-        let preProcessed = mergedText.replace(/(^|\n)(\s*#.*?)(?=\n|$)/g, '$1$2|');
+        // Fix 1: Ensure slide headers (lines starting with #) are treated as separate sentences
+        let t = mergedText.replace(/(^|\n)(\s*#.*?)(?=\n|$)/g, '$1$2|');
+
+        // Fix 2: Treat newlines as sentence delimiters (User request: "one sentence at a time")
+        // This prevents bullet points or lines without punctuation from merging into paragraphs.
+        t = t.replace(/\r?\n/g, '|');
 
         // Clean text: remove slide delimiters like *** or --
-        let cleanedText = preProcessed.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
+        t = t.replace(/[*]{3,}|[-]{3,}/g, ' ');
 
-        // Attach quotes to words (remove spaces inside quotes)
-        // French guillemets: « word » -> «word»
-        // Update: User requested keeping spaces but treating as one word.
-        // So we do NOT remove spaces.
-        // cleanedText = cleanedText.replace(/«\s+/g, '«').replace(/\s+»/g, '»');
-        // English quotes: " word " -> "word" (simplified: remove space after opening " and before closing " if possible, 
-        // but " is ambiguous. Start with French as it's the main request causing "word" vs " " issues).
-        // For simple " matching, we can try to collapse " \w and \w " but " is context dependent.
-        // Robust generic approach: remove spaces around punctuation that should appear attached?
-        // User specifically asked for " and << or >>.
-        cleanedText = cleanedText.replace(/"\s+([^"]*?)\s+"/g, '"$1"'); // Try to clean paired quotes if possible, else rely on simple trim
+        // Clean up spaces: replace multiple spaces/tabs with single space
+        t = t.replace(/[ \t]+/g, ' ');
+
+        // English quotes: " word " -> "word" 
+        t = t.replace(/"\s+([^"]*?)\s+"/g, '"$1"');
 
         // Split by sentence delimiters (. ! ?) but keep them attached
-        const sentences = cleanedText.replace(/([.!?])\s+/g, '$1|').split('|');
+        // If delimiter is followed by space, treat as split.
+        t = t.replace(/([.!?])\s+/g, '$1|');
+
+        const sentences = t.split('|').map(s => s.trim()).filter(s => s.length > 0);
 
         this.content = sentences.map(text => {
             const trimmed = text.trim();
