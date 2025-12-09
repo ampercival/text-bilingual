@@ -583,6 +583,12 @@ class PracticeController {
                 this.togglePlay();
             } else if (e.code === 'Escape') {
                 this.close();
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                this.skipToSentence(this.currentIndex + 1);
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                this.skipToSentence(this.currentIndex - 1);
             }
         });
     }
@@ -908,6 +914,47 @@ class PracticeController {
             return `<span class="practice-word">${word}</span>`;
         }).join(' ');
     }
+    calculateDurationUntil(index) {
+        if (!this.content.length || index <= 0) return 0;
+        let totalMs = 0;
+        const wordMs = this.baseDelay;
+        const limit = Math.min(index, this.content.length);
+
+        for (let i = 0; i < limit; i++) {
+            const sent = this.content[i];
+            totalMs += sent.words.length * wordMs;
+            for (const word of sent.words) {
+                if (',;:'.includes(word.slice(-1))) totalMs += wordMs;
+                if (word === '#') totalMs += wordMs * 2.0;
+            }
+            const lastChar = sent.text.slice(-1);
+            if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
+        }
+        return totalMs;
+    }
+
+    skipToSentence(index) {
+        if (index < 0) index = 0;
+        if (index >= this.content.length) index = this.content.length - 1;
+
+        // Update state
+        this.currentIndex = index;
+        this.currentSentenceWordIdx = 0; // Start at beginning of sentence
+        this.currentWordGlobalIdx = 0; // Not strictly used for time anymore? actually used in updateRunningTimers old logic, but irrelevant with accumulatedTime logic, but let's keep it safe or ignore. 
+        // We rely on accumulatedTime now.
+
+        // Recalculate accumulated time to start of this sentence
+        this.accumulatedTime = this.calculateDurationUntil(index);
+
+        if (this.isPlaying) {
+            if (this.timer) clearTimeout(this.timer);
+            this.tick();
+        } else {
+            this.updateThreeSentences();
+            this.updateRunningTimers();
+        }
+    }
+
     calculateTotalDuration() {
         if (!this.content.length) return 0;
         let totalMs = 0;
