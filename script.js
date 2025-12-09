@@ -579,8 +579,12 @@ class PracticeController {
         });
     }
     openFromMerged(mergedText) {
+        // Fix: Ensure slide headers (lines starting with #) are treated as separate sentences
+        // Inject a pipe delimiter after header lines so they split correctly later
+        let preProcessed = mergedText.replace(/(^|\n)(\s*#.*?)(?=\n|$)/g, '$1$2|');
+
         // Clean text: remove slide delimiters like *** or --
-        let cleanedText = mergedText.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
+        let cleanedText = preProcessed.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
 
         // Attach quotes to words (remove spaces inside quotes)
         // French guillemets: « word » -> «word»
