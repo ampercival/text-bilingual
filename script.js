@@ -1412,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
             expandFr: 'Expand French text',
             textFormatted: 'Text formatted!',
             descTitle: 'What it does',
-            descContent: 'This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English and French text into one script, with each language taking about half of the time. The tool picks good places to switch between languages and sets the right amount of time to stay in one language before switching.',
+            descContent: 'This tool helps you create a bilingual version of a speech or speaking notes. It mixes your English and French text into one script, with each language taking about half of the time. The tool picks good places to switch between languages and sets the right amount of time to stay in one language before switching.<br><br>Once you have the bilingual text, you can go into Live Mode and it acts as a teleprompter for you.',
             // Additions
             liveMode: 'Live Mode',
             themeToggleAriaLabel: 'Toggle theme',
@@ -1513,7 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
             expandFr: 'Agrandir le texte fran\u00e7ais',
             textFormatted: 'Texte format\u00e9 !',
             descTitle: 'Ce que fait cet outil',
-            descContent: 'Cet outil vous aide \u00e0 cr\u00e9er une version bilingue d\'un discours ou de notes d\'allocution. Il m\u00e9lange vos textes anglais et fran\u00e7ais en un seul script, chaque langue occupant environ la moiti\u00e9 du temps. L\'outil choisit les bons endroits pour changer de langue et d\u00e9finit la dur\u00e9e appropri\u00e9e pour rester dans une langue avant de changer.',
+            descContent: 'Cet outil vous aide \u00e0 cr\u00e9er une version bilingue d\'un discours ou de notes d\'allocution. Il m\u00e9lange vos textes anglais et fran\u00e7ais en un seul script, chaque langue occupant environ la moiti\u00e9 du temps. L\'outil choisit les bons endroits pour changer de langue et d\u00e9finit la dur\u00e9e appropri\u00e9e pour rester dans une langue avant de changer.<br><br>Une fois votre texte bilingue obtenu, passez en Mode Direct. Il fonctionne comme un t\u00e9l\u00e9prompteur pour vous aider \u00e0 prononcer votre discours.',
             // Additions
             liveMode: 'Mode direct',
             themeToggleAriaLabel: 'Changer le thème',
