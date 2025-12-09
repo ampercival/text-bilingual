@@ -548,6 +548,7 @@ class PracticeController {
         this.countdownCheckbox = document.getElementById('countdown-checkbox');
         this.pauseSlideCheckbox = document.getElementById('pause-slide-checkbox');
         this.t = {}; // Translations
+        this.accumulatedTime = 0;
         this.bindEvents();
     }
     setTranslations(t) {
@@ -682,8 +683,6 @@ class PracticeController {
             // Note: currentIndex was incremented above.
 
             if (nextIsSlide && this.pauseSlideCheckbox && this.pauseSlideCheckbox.checked && !this.pauseSlideCheckbox.disabled) {
-                // We just advanced index. currentSentenceWordIdx is -1 or 0? 
-                // In the code block above, it was set to -1.
                 this.currentSentenceWordIdx = 0; // Ensure it's ready to show
                 this.updateThreeSentences(); // Show Header
                 this.pause(); // Pause playback
@@ -695,6 +694,7 @@ class PracticeController {
 
             // Wait for the pause, then start highlighting the new sentence
             this.timer = setTimeout(() => {
+                this.accumulatedTime += pause;
                 this.currentSentenceWordIdx = 0; // Ready for first word
                 this.tick();
             }, pause);
@@ -715,6 +715,7 @@ class PracticeController {
             }
 
             this.timer = setTimeout(() => {
+                this.accumulatedTime += delay;
                 this.currentSentenceWordIdx++;
                 this.currentWordGlobalIdx++;
                 this.tick();
@@ -734,6 +735,7 @@ class PracticeController {
         this.currentIndex = 0;
         this.currentWordGlobalIdx = 0;
         this.currentSentenceWordIdx = 0; // Initialize for immediate display
+        this.accumulatedTime = 0;
         this.isPaused = false;
         this.isPlaying = false;
         this.updatePlayButton();
@@ -930,25 +932,78 @@ class PracticeController {
         }
         return totalMs;
     }
+    calculateRemainingDuration() {
+        if (!this.content.length || this.currentIndex >= this.content.length) return 0;
+
+        let totalMs = 0;
+        const wordMs = this.baseDelay;
+
+        // 1. Remaining part of CURRENT sentence
+        const currentSent = this.content[this.currentIndex];
+        const startWord = Math.max(0, this.currentSentenceWordIdx);
+
+        if (startWord < currentSent.words.length) {
+            // Words
+            totalMs += (currentSent.words.length - startWord) * wordMs;
+            // Pauses within remaining words
+            for (let i = startWord; i < currentSent.words.length; i++) {
+                const word = currentSent.words[i];
+                if (',;:'.includes(word.slice(-1))) totalMs += wordMs;
+                if (word === '#') totalMs += wordMs * 2.0;
+            }
+            // End of current sentence pause
+            const lastChar = currentSent.text.slice(-1);
+            if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
+        }
+
+        // 2. All SUBSEQUENT sentences
+        for (let i = this.currentIndex + 1; i < this.content.length; i++) {
+            const sent = this.content[i];
+            totalMs += sent.words.length * wordMs;
+            for (const word of sent.words) {
+                if (',;:'.includes(word.slice(-1))) totalMs += wordMs;
+                if (word === '#') totalMs += wordMs * 2.0;
+            }
+            const lastChar = sent.text.slice(-1);
+            if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
+        }
+
+        return totalMs;
+    }
+
     updateTotalDuration() {
-        const ms = this.calculateTotalDuration();
-        const sec = Math.ceil(ms / 1000);
+        // Recalculate based on current speed
+        let displayMs = this.calculateTotalDuration();
+
+        // If we have started playing, use dynamic total (Accumulated + Remaining)
+        if (this.accumulatedTime > 0) {
+            const rem = this.calculateRemainingDuration();
+            displayMs = this.accumulatedTime + rem;
+        }
+
+        const sec = Math.ceil(displayMs / 1000);
         const min = Math.floor(sec / 60);
         const s = sec % 60;
         if (this.timerTotal) this.timerTotal.textContent = `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
+
     updateRunningTimers() {
-        const ms = (this.currentWordGlobalIdx * this.baseDelay);
+        const ms = this.accumulatedTime;
         const sec = Math.floor(ms / 1000);
         const min = Math.floor(sec / 60);
         const s = sec % 60;
         if (this.timerCurrent) this.timerCurrent.textContent = `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        const totalMs = this.calculateTotalDuration();
-        const remMs = Math.max(0, totalMs - ms);
+
+        const remMs = this.calculateRemainingDuration();
         const rSec = Math.ceil(remMs / 1000);
         const rMin = Math.floor(rSec / 60);
         const rS = rSec % 60;
         if (this.timerRemaining) this.timerRemaining.textContent = `${String(rMin).padStart(2, '0')}:${String(rS).padStart(2, '0')}`;
+
+        // Also update total dynamically
+        if (this.accumulatedTime > 0) {
+            this.updateTotalDuration();
+        }
     }
 }
 
