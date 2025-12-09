@@ -22,7 +22,7 @@ class BilingualMerger {
 
         let text = input || '';
         // 1. Clean separators exactly like PracticeController
-        text = text.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' '); 
+        text = text.replace(/[*]{3,}|[-]{3,}/g, ' ').replace(/\s+/g, ' ');
 
         // 2. Handle English quotes (simple clean) - matching PracticeController
         text = text.replace(/"\s+([^"]*?)\s+"/g, '"$1"');
@@ -34,34 +34,34 @@ class BilingualMerger {
         let totalUnits = 0;
 
         for (const sentText of sentences) {
-             const trimmed = sentText.trim();
-             if (!trimmed) continue;
-             
-             // 4. Parse words (using the quote-aware regex matching PracticeController/countWords)
-             const words = trimmed.match(/«[^»]+»|\S+/g) || [];
-             
-             // Base units for words
-             totalUnits += words.length;
-             
-             // Mid-sentence pauses (1 unit)
-             for (const word of words) {
-                 if (',;:'.includes(word.slice(-1))) {
-                     totalUnits += 1;
-                 }
-                 // Slide header pause (treat # as hard punctuation/double pause)
-                 if (word === '#') {
-                     totalUnits += 2;
-                 }
-             }
-             
-             // End-sentence pause (2 units)
-             // Check the last character of the full sentence text
-             const lastChar = trimmed.slice(-1);
-             if ('.!?'.includes(lastChar)) {
-                 totalUnits += 2;
-             }
+            const trimmed = sentText.trim();
+            if (!trimmed) continue;
+
+            // 4. Parse words (using the quote-aware regex matching PracticeController/countWords)
+            const words = trimmed.match(/«[^»]+»|\S+/g) || [];
+
+            // Base units for words
+            totalUnits += words.length;
+
+            // Mid-sentence pauses (1 unit)
+            for (const word of words) {
+                if (',;:'.includes(word.slice(-1))) {
+                    totalUnits += 1;
+                }
+                // Slide header pause (treat # as hard punctuation/double pause)
+                if (word === '#') {
+                    totalUnits += 2;
+                }
+            }
+
+            // End-sentence pause (2 units)
+            // Check the last character of the full sentence text
+            const lastChar = trimmed.slice(-1);
+            if ('.!?'.includes(lastChar)) {
+                totalUnits += 2;
+            }
         }
-        
+
         return (totalUnits / this.wpm) * 60;
     }
 
@@ -273,11 +273,11 @@ class BilingualMerger {
                     // Duration stats might be slightly off if we don't fix it.
                     // Let's fix it properly.
                     if (lastChoice.lang === 'en') {
-                         enDur -= this.estimateDuration(lastChoice.text || ''); // rough check
-                         frDur += this.estimateDuration(lastChoice.altText || '');
+                        enDur -= this.estimateDuration(lastChoice.text || ''); // rough check
+                        frDur += this.estimateDuration(lastChoice.altText || '');
                     } else {
-                         frDur -= this.estimateDuration(lastChoice.text || '');
-                         enDur += this.estimateDuration(lastChoice.altText || '');
+                        frDur -= this.estimateDuration(lastChoice.text || '');
+                        enDur += this.estimateDuration(lastChoice.altText || '');
                     }
                     outputParas[lastIdx] = lastChoice.altText;
                     enWordsUsed = swapEn;
@@ -339,12 +339,12 @@ class BilingualMerger {
 
                 slidesOut.push({ text: `${title}\n${chosenSlide.body}`.trim() });
                 if (chosenLang === 'en') {
-                     enWordsUsed += chosenSlide.words;
-                     // Only calculate duration ONCE using the full text (Title + Body)
-                     enDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
+                    enWordsUsed += chosenSlide.words;
+                    // Only calculate duration ONCE using the full text (Title + Body)
+                    enDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
                 } else {
-                     frWordsUsed += chosenSlide.words;
-                     frDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
+                    frWordsUsed += chosenSlide.words;
+                    frDur += this.estimateDuration(`${title}\n${chosenSlide.body}`);
                 }
             }
 
@@ -411,11 +411,11 @@ class BilingualMerger {
                     const chosenLang = primary.text ? plannedLang : other(plannedLang);
                     paraOrder.push({ text: chosen.text, lang: chosenLang, words: chosen.words });
                     if (chosenLang === 'en') {
-                         slideEn += chosen.words;
-                         enDur += this.estimateDuration(chosen.text);
+                        slideEn += chosen.words;
+                        enDur += this.estimateDuration(chosen.text);
                     } else {
-                         slideFr += chosen.words;
-                         frDur += this.estimateDuration(chosen.text);
+                        slideFr += chosen.words;
+                        frDur += this.estimateDuration(chosen.text);
                     }
                 }
 
@@ -429,11 +429,11 @@ class BilingualMerger {
                     if (missingPara.text) {
                         paraOrder.push({ text: missingPara.text, lang: missingLang, words: missingPara.words });
                         if (missingLang === 'en') {
-                             slideEn += missingPara.words;
-                             enDur += this.estimateDuration(missingPara.text);
+                            slideEn += missingPara.words;
+                            enDur += this.estimateDuration(missingPara.text);
                         } else {
-                             slideFr += missingPara.words;
-                             frDur += this.estimateDuration(missingPara.text);
+                            slideFr += missingPara.words;
+                            frDur += this.estimateDuration(missingPara.text);
                         }
                     }
                 }
@@ -448,7 +448,7 @@ class BilingualMerger {
                 slidesOut.push({ text: parts.join('\n\n').trim(), endLang });
                 enWords += slideEn;
                 frWords += slideFr;
-                
+
                 // Add title duration to the starting language of the slide
                 // (Since we prepend the title, it effectively belongs to the slide context)
                 if (startLang === 'en') {
@@ -870,17 +870,17 @@ class PracticeController {
         for (const sent of this.content) {
             // Words duration
             totalMs += sent.words.length * wordMs;
-            
+
             // Mid-sentence pauses (1x)
             for (const word of sent.words) {
-                 if (',;:'.includes(word.slice(-1))) {
-                     totalMs += wordMs;
-                 }
-                 if (word === '#') {
-                     totalMs += wordMs * 2.0;
-                 }
+                if (',;:'.includes(word.slice(-1))) {
+                    totalMs += wordMs;
+                }
+                if (word === '#') {
+                    totalMs += wordMs * 2.0;
+                }
             }
-            
+
             // Punctuation pause duration (2x)
             const lastChar = sent.text.slice(-1);
             if ('.!?'.includes(lastChar)) totalMs += wordMs * 2.0;
@@ -908,9 +908,259 @@ class PracticeController {
         if (this.timerRemaining) this.timerRemaining.textContent = `${String(rMin).padStart(2, '0')}:${String(rS).padStart(2, '0')}`;
     }
 }
+
+class SessionManager {
+    constructor() {
+        this.STORAGE_KEY = 'text_bilingual_sessions';
+
+        // UI Elements
+        this.saveBtn = document.getElementById('save-session-btn');
+        this.loadBtn = document.getElementById('load-session-btn');
+        this.saveModal = document.getElementById('save-modal');
+        this.loadModal = document.getElementById('load-modal');
+        this.closeSaveBtn = document.getElementById('close-save-btn');
+        this.closeLoadBtn = document.getElementById('close-load-btn');
+        this.cancelSaveBtn = document.getElementById('cancel-save-btn');
+        this.confirmSaveBtn = document.getElementById('confirm-save-btn');
+        this.sessionNameInput = document.getElementById('session-name-input');
+        this.sessionList = document.getElementById('session-list');
+
+        this.bindEvents();
+    }
+
+    bindEvents() {
+        if (this.saveBtn) this.saveBtn.addEventListener('click', () => this.openSaveModal());
+        if (this.loadBtn) this.loadBtn.addEventListener('click', () => this.openLoadModal());
+        if (this.closeSaveBtn) this.closeSaveBtn.addEventListener('click', () => this.closeSaveModal());
+        if (this.closeLoadBtn) this.closeLoadBtn.addEventListener('click', () => this.closeLoadModal());
+        if (this.cancelSaveBtn) this.cancelSaveBtn.addEventListener('click', () => this.closeSaveModal());
+        if (this.confirmSaveBtn) this.confirmSaveBtn.addEventListener('click', () => this.saveCurrentSession());
+
+        // Close on outside click
+        window.addEventListener('click', (e) => {
+            if (this.saveModal && e.target === this.saveModal) this.closeSaveModal();
+            if (this.loadModal && e.target === this.loadModal) this.closeLoadModal();
+        });
+
+        // Enter key on input
+        if (this.sessionNameInput) {
+            this.sessionNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') this.saveCurrentSession();
+                if (e.key === 'Escape') this.closeSaveModal();
+            });
+        }
+    }
+
+    getSessions() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+        } catch (e) {
+            console.error('Error reading sessions', e);
+            return {};
+        }
+    }
+
+    saveSessionFull(name, data) {
+        const sessions = this.getSessions();
+        sessions[name] = {
+            ...data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sessions));
+    }
+
+    deleteSession(name) {
+        const sessions = this.getSessions();
+        delete sessions[name];
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sessions));
+        this.renderSessionList();
+    }
+
+    openSaveModal() {
+        this.sessionNameInput.value = '';
+        this.saveModal.style.display = 'block';
+        this.saveModal.setAttribute('aria-hidden', 'false');
+        this.sessionNameInput.focus();
+    }
+
+    closeSaveModal() {
+        this.saveModal.style.display = 'none';
+        this.saveModal.setAttribute('aria-hidden', 'true');
+    }
+
+    saveCurrentSession() {
+        const name = this.sessionNameInput.value.trim();
+        if (!name) {
+            alert('Please enter a session name');
+            return;
+        }
+
+        // Gather State
+        const data = {
+            englishText: document.getElementById('english-text').value,
+            frenchText: document.getElementById('french-text').value,
+            mode: document.querySelector('input[name="mode"]:checked')?.value,
+            startLang: document.querySelector('input[name="start-lang"]:checked')?.value,
+            slideMode: document.querySelector('input[name="slide-mode"]:checked')?.value,
+            mixedPattern: document.querySelector('input[name="mixed-pattern"]:checked')?.value,
+            durationMode: document.querySelector('input[name="duration-mode"]:checked')?.value,
+            blockTime: document.getElementById('block-time').value,
+            isOutputVisible: document.getElementById('output-section').style.display !== 'none'
+        };
+
+        this.saveSessionFull(name, data);
+        this.closeSaveModal();
+
+        // Show brief confirmation
+        const validationMsg = document.getElementById('validation-message');
+        if (validationMsg) {
+            validationMsg.textContent = `Session "${name}" saved!`;
+            validationMsg.style.display = 'block';
+            validationMsg.style.backgroundColor = '#ecfccb'; // light green
+            validationMsg.style.borderColor = '#bef264';
+            validationMsg.style.color = '#3f6212';
+            setTimeout(() => {
+                validationMsg.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    openLoadModal() {
+        this.renderSessionList();
+        this.loadModal.style.display = 'block';
+        this.loadModal.setAttribute('aria-hidden', 'false');
+    }
+
+    closeLoadModal() {
+        this.loadModal.style.display = 'none';
+        this.loadModal.setAttribute('aria-hidden', 'true');
+    }
+
+    renderSessionList() {
+        const sessions = this.getSessions();
+        const names = Object.keys(sessions).sort((a, b) => sessions[b].timestamp - sessions[a].timestamp);
+
+        this.sessionList.innerHTML = '';
+
+        if (names.length === 0) {
+            this.sessionList.innerHTML = '<p class="empty-state">No saved sessions found.</p>';
+            return;
+        }
+
+        names.forEach(name => {
+            const date = new Date(sessions[name].timestamp).toLocaleString();
+            const el = document.createElement('div');
+            el.className = 'session-item';
+            el.innerHTML = `
+                <div class="session-info" role="button" tabindex="0">
+                    <div class="session-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </div>
+                    <div class="session-details">
+                        <span class="session-name">${this.escapeHtml(name)}</span>
+                        <span class="session-date">${date}</span>
+                    </div>
+                </div>
+                <button class="session-delete" aria-label="Delete session">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            `;
+
+            // Bind Load
+            el.querySelector('.session-info').addEventListener('click', () => this.loadSession(name));
+            el.querySelector('.session-info').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') this.loadSession(name);
+            });
+
+            // Bind Delete
+            el.querySelector('.session-delete').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`Delete session "${name}"?`)) {
+                    this.deleteSession(name);
+                }
+            });
+
+            this.sessionList.appendChild(el);
+        });
+    }
+
+    loadSession(name) {
+        const sessions = this.getSessions();
+        const data = sessions[name];
+        if (!data) return;
+
+        // Apply State
+        if (data.englishText !== undefined) document.getElementById('english-text').value = data.englishText;
+        if (data.frenchText !== undefined) document.getElementById('french-text').value = data.frenchText;
+
+        this.setRadio('mode', data.mode);
+        this.setRadio('start-lang', data.startLang);
+        this.setRadio('slide-mode', data.slideMode);
+        this.setRadio('mixed-pattern', data.mixedPattern);
+        this.setRadio('duration-mode', data.durationMode);
+
+        if (data.blockTime) {
+            const slider = document.getElementById('block-time');
+            if (slider) {
+                slider.value = data.blockTime;
+                slider.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Trigger change events to update UI visibility
+        ['mode', 'start-lang', 'slide-mode', 'mixed-pattern', 'duration-mode'].forEach(group => {
+            const checked = document.querySelector(`input[name="${group}"]:checked`);
+            if (checked) checked.dispatchEvent(new Event('change'));
+        });
+
+        // Trigger input event on textareas
+        const enInput = document.getElementById('english-text');
+        const frInput = document.getElementById('french-text');
+        if (enInput) enInput.dispatchEvent(new Event('input'));
+        if (frInput) frInput.dispatchEvent(new Event('input'));
+
+        this.closeLoadModal();
+
+        // Restore Output if it was visible
+        if (data.isOutputVisible) {
+            const generateBtn = document.getElementById('generate-btn');
+            if (generateBtn) {
+                // Use setTimeout to allow UI updates/events to propagate first if needed
+                setTimeout(() => generateBtn.click(), 50);
+            }
+        }
+
+        // Show confirmation
+        const validationMsg = document.getElementById('validation-message');
+        if (validationMsg) {
+            validationMsg.textContent = `Session "${name}" loaded!`;
+            validationMsg.style.display = 'block';
+            validationMsg.style.backgroundColor = '#e0f2fe';
+            validationMsg.style.borderColor = '#7dd3fc';
+            validationMsg.style.color = '#0369a1';
+            setTimeout(() => {
+                validationMsg.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    setRadio(name, value) {
+        if (!value) return;
+        const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+        if (radio) radio.checked = true;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const merger = new BilingualMerger();
     const practiceMode = new PracticeController();
+    const sessionManager = new SessionManager();
     // DOM Elements
     const enInput = document.getElementById('english-text');
     const frInput = document.getElementById('french-text');

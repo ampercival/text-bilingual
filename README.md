@@ -15,6 +15,9 @@ A powerful, client-side web application designed to merge English and French tex
   - **Single Language**: Alternates language per slide (Slide 1: EN, Slide 2: FR, etc.).
   - **Mixed Mode**: Splits each slide 50/50 (half EN, half FR).
   - **Pattern Control**: Choose between Alternating (A-B, B-A) or Repeating (A-B, A-B) patterns.
+- **Interactive Features**:
+  - **Save & Load**: Local storage support to save your work. Create multiple named sessions and reload them anytime.
+  - **Live Teleprompter**: A built-in practice mode with rolling text, adjustable speed, and focus highlighting.
 - **Robust Tools**:
   - **Formatting Helper**: Auto-formats raw text to add slide headers or clean up spacing.
   - **Live Statistics**: Real-time word counts and duration estimates based on WPM.
@@ -33,8 +36,11 @@ A powerful, client-side web application designed to merge English and French tex
 3.  **Choose Mode**:
     - **Speech**: Best for spoken scripts. Adjust the "Block Time" to control how often languages switch.
     - **Presentation**: Use `#` at the start of lines to denote new slides (e.g., `# Slide 1`).
-4.  **Generate**: Click **Generate Bilingual Text**.
-5.  **Export**: Review the preview, check the stats, and click **Copy to Clipboard** or **Download**.
+4.  **Save Your Session**: Click **Save** to store your current inputs and settings. You can load them back later via the **Load** button.
+5.  **Generate**: Click **Generate Bilingual Text**.
+6.  **Export or Practice**:
+    - Review the preview and click **Copy** or **Download**.
+    - Click **Practice Mode** to launch the teleprompter view.
 
 ### Input Formatting Guide
 
