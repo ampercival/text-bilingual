@@ -1307,7 +1307,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
     }
 }
 
-/ *   S e s s i o n   L i s t   * / 
 /* Session List */
 .session-list {
     display: flex;
